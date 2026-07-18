@@ -1,9 +1,8 @@
 import productData from "../data/products.json";
 
 export type Recipient = "partner" | "family" | "friend" | "colleague";
-export type Occasion = "birthday" | "anniversary" | "thank-you" | "congratulations" | "just-because" | "sympathy";
+export type Occasion = "birthday" | "anniversary" | "thank-you" | "congratulations" | "just-because";
 export type GiftCategory =
-  | "sympathy"
   | "flowers"
   | "food-drink"
   | "personalized"

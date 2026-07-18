@@ -47,29 +47,36 @@ const VIBE_MAP = { Romantic: "romantic", Elegant: "elegant", Cheerful: "cheerful
 const source = JSON.parse(readFileSync(SOURCE, "utf8"));
 const visionTags = existsSync(TAGS) ? JSON.parse(readFileSync(TAGS, "utf8")) : {};
 
-const products = source.map((p) => {
-  const tagged = visionTags[p.id] ?? {};
-  const baseCategory = CATEGORY_MAP[p.tags?.[0]] ?? "other";
-  const baseOccasions = [...new Set((p.occasions ?? []).map((o) => OCCASION_MAP[o]).filter(Boolean))];
-  const baseVibes = [...new Set((p.styles ?? []).map((s) => VIBE_MAP[s]).filter(Boolean))];
-  const baseColors = (p.colors ?? []).map((c) => c.toLowerCase());
+const products = source
+  .map((p) => {
+    const tagged = visionTags[p.id] ?? {};
+    const baseCategory = CATEGORY_MAP[p.tags?.[0]] ?? "other";
+    const baseOccasions = [...new Set((p.occasions ?? []).map((o) => OCCASION_MAP[o]).filter(Boolean))];
+    const baseVibes = [...new Set((p.styles ?? []).map((s) => VIBE_MAP[s]).filter(Boolean))];
+    const baseColors = (p.colors ?? []).map((c) => c.toLowerCase());
 
-  return {
-    id: p.id,
-    title: p.name,
-    description: p.description ?? "",
-    link: p.link,
-    image: p.image.src,
-    price: p.pricing.amount,
-    maxPrice: p.originalPrice ?? p.pricing.amount,
-    categories: tagged.categories?.length ? tagged.categories : [baseCategory],
-    occasions: tagged.occasions?.length ? tagged.occasions : (baseOccasions.length ? baseOccasions : ["just-because"]),
-    recipients: tagged.recipients ?? [],
-    vibes: tagged.vibes?.length ? tagged.vibes : baseVibes,
-    colors: tagged.colors?.length ? tagged.colors : baseColors,
-    hubs: [],
-  };
-});
+    const categories = tagged.categories?.length ? tagged.categories : [baseCategory];
+    const occasions = (tagged.occasions?.length ? tagged.occasions : (baseOccasions.length ? baseOccasions : ["just-because"]))
+      .filter((o) => o !== "sympathy");
+
+    return {
+      id: p.id,
+      title: p.name,
+      description: p.description ?? "",
+      link: p.link,
+      image: p.image.src,
+      price: p.pricing.amount,
+      maxPrice: p.originalPrice ?? p.pricing.amount,
+      categories,
+      occasions: occasions.length ? occasions : ["just-because"],
+      recipients: tagged.recipients ?? [],
+      vibes: tagged.vibes?.length ? tagged.vibes : baseVibes,
+      colors: tagged.colors?.length ? tagged.colors : baseColors,
+      hubs: [],
+    };
+  })
+  // Sympathy is out of scope for the gift finder — drop funeral/condolence items entirely.
+  .filter((p) => !p.categories.includes("sympathy"));
 
 writeFileSync(OUT, JSON.stringify(products, null, 1));
 const tagged = products.filter((p) => visionTags[p.id]).length;

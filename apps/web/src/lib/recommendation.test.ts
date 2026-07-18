@@ -38,15 +38,9 @@ describe("swipe deck", () => {
     expect(new Set(deck.map((product) => product.id)).size).toBe(deck.length);
   });
 
-  it("does not mix sympathy products into celebratory decks", () => {
-    const deck = createSwipeDeck(products, "colleague", "congratulations");
-    expect(deck.every((product) => !product.categories.includes("sympathy"))).toBe(true);
-  });
-
-  it("uses only sympathy-sensitive products for a sympathy deck", () => {
-    const deck = createSwipeDeck(products, "family", "sympathy");
-    expect(deck.length).toBeGreaterThanOrEqual(SWIPE_COUNT);
-    expect(deck.every((product) => product.categories.includes("sympathy"))).toBe(true);
+  it("carries no sympathy products in the catalogue at all", () => {
+    expect(products.every((product) => !(product.categories as string[]).includes("sympathy"))).toBe(true);
+    expect(products.every((product) => !(product.occasions as string[]).includes("sympathy"))).toBe(true);
   });
 });
 
@@ -116,16 +110,6 @@ describe("recommendation ranking", () => {
     }));
     const matches = rankRecommendations(products, swipes, "friend", "birthday", "Under ₱1,000");
     expect(matches.every(({ product }) => product.price >= min && product.price < max)).toBe(true);
-  });
-
-  it("never recommends sympathy products for a celebratory occasion", () => {
-    const deck = createSwipeDeck(products, "friend", "birthday");
-    const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
-      productId: product.id,
-      direction: index % 3 === 0 ? "like" : "pass",
-    }));
-    const matches = rankRecommendations(products, swipes, "friend", "birthday").slice(0, 12);
-    expect(matches.every(({ product }) => !product.categories.includes("sympathy"))).toBe(true);
   });
 });
 

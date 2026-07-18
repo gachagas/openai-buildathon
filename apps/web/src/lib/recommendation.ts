@@ -26,7 +26,6 @@ export interface Recommendation {
 }
 
 const categoryNames: Record<GiftCategory, string> = {
-  sympathy: "comforting tribute",
   flowers: "flowers",
   "food-drink": "gourmet treats",
   personalized: "personalized keepsakes",
@@ -47,17 +46,12 @@ function stableNumber(value: string) {
   return hash >>> 0;
 }
 
-function eligibleProducts(allProducts: Product[], occasion: Occasion, budget?: Budget | null) {
-  const byOccasion = allProducts.filter((product) =>
-    occasion === "sympathy"
-      ? product.categories.includes("sympathy")
-      : !product.categories.includes("sympathy"),
-  );
+function eligibleProducts(allProducts: Product[], budget?: Budget | null) {
   const band = budget ? BUDGETS[budget] : undefined;
-  if (!band) return byOccasion;
-  const inBudget = byOccasion.filter((product) => product.price >= band[0] && product.price < band[1]);
-  // Fall back to the full occasion pool if the budget is too narrow to fill a deck.
-  return inBudget.length >= SWIPE_COUNT ? inBudget : byOccasion;
+  if (!band) return allProducts;
+  const inBudget = allProducts.filter((product) => product.price >= band[0] && product.price < band[1]);
+  // Fall back to the full pool if the budget is too narrow to fill a deck.
+  return inBudget.length >= SWIPE_COUNT ? inBudget : allProducts;
 }
 
 function contextScore(product: Product, recipient: Recipient, occasion: Occasion) {
@@ -82,7 +76,7 @@ export function createSwipeDeck(
   budget?: Budget | null,
 ): Product[] {
   const seed = `${recipient}:${occasion}:${budget ?? "any"}`;
-  const ranked = eligibleProducts(allProducts, occasion, budget)
+  const ranked = eligibleProducts(allProducts, budget)
     .map((product) => ({
       product,
       score: contextScore(product, recipient, occasion),
@@ -237,7 +231,7 @@ export function rankRecommendations(
   const seenIds = new Set(swipes.map((swipe) => swipe.productId));
   const learned = learnFromSwipes(byId, swipes);
 
-  return eligibleProducts(allProducts, occasion, budget)
+  return eligibleProducts(allProducts, budget)
     .filter((product) => !seenIds.has(product.id))
     .map((product) => {
       const [score, similarity] = blendScore(product, learned, recipient, occasion);
@@ -268,7 +262,7 @@ export function adaptDeckTail(
   const prefix = deck.slice(0, swipes.length);
   const targetTail = Math.max(SWIPE_COUNT - swipes.length + 4, 4);
 
-  const ranked = eligibleProducts(allProducts, occasion, budget)
+  const ranked = eligibleProducts(allProducts, budget)
     .filter((product) => !seenIds.has(product.id))
     .map((product) => ({ product, score: blendScore(product, learned, recipient, occasion)[0] }))
     .sort((a, b) => b.score - a.score);

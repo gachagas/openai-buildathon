@@ -61,7 +61,6 @@ const occasions: Array<{ value: Occasion; label: string }> = [
   { value: "thank-you", label: "Thank you" },
   { value: "congratulations", label: "Congratulations" },
   { value: "just-because", label: "Just because" },
-  { value: "sympathy", label: "Sympathy" },
 ];
 
 const budgets = Object.keys(BUDGETS) as Budget[];

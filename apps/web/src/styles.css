@@ -429,3 +429,10 @@ kbd { display: none; }
 
 /* Toast */
 .app-toast { position: fixed; left: 50%; bottom: 82px; z-index: 60; padding: 9px 16px; border-radius: 4px; background: var(--fs-ink); color: var(--fs-paper); font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 10px 26px oklch(0.31 0.02 258 / 0.28); }
+
+/* Live "noticing" taste chips on the swipe screen (visible intelligence) */
+.taste-noticing { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; animation: enter 220ms ease both; }
+.taste-noticing svg { width: 14px; height: 14px; color: var(--fs-coral-dark); }
+.taste-noticing > span { color: var(--fs-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
+.taste-noticing em { padding: 3px 9px; border-radius: 999px; background: var(--fs-blush); color: var(--fs-coral-dark); font-size: 11px; font-weight: 800; font-style: normal; text-transform: capitalize; }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

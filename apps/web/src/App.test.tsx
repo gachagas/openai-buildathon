@@ -48,4 +48,15 @@ describe("gift finder app", () => {
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
   });
+
+  it("shows live taste chips once you have liked a couple of gifts", async () => {
+    startSwiping();
+    expect(screen.queryByText("Noticing")).not.toBeInTheDocument();
+
+    // decide() locks for 230ms to debounce the card animation, so space the likes.
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText("Noticing")).toBeVisible();
+  });
 });

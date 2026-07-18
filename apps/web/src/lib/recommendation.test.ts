@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { products } from "./catalog";
+import { hasVector } from "./similar";
 import {
   BUDGETS,
   MIN_LIKES_FOR_RECOMMENDATION,
   RESULTS_PER_GROUP,
   SWIPE_COUNT,
+  adaptDeckTail,
   createSwipeDeck,
+  emergingTaste,
   hasEnoughSignals,
   likedProductsForResults,
   rankRecommendations,
@@ -13,13 +16,18 @@ import {
 } from "./recommendation";
 
 describe("FlowerStore catalog snapshot", () => {
-  it("contains a diverse, valid set of real products", () => {
-    expect(products.length).toBeGreaterThanOrEqual(180);
+  it("contains a diverse, valid, richly-tagged set of real products", () => {
+    expect(products.length).toBeGreaterThanOrEqual(450);
     expect(new Set(products.map((product) => product.link)).size).toBe(products.length);
     expect(new Set(products.flatMap((product) => product.categories)).size).toBeGreaterThanOrEqual(8);
     expect(products.every((product) => product.link.startsWith("https://flowerstore.ph/product/"))).toBe(true);
     expect(products.every((product) => product.image.startsWith("https://flowerstoreph-assets-prod.s3"))).toBe(true);
-    expect(products.every((product) => product.price >= 399)).toBe(true);
+    expect(products.every((product) => product.price >= 99)).toBe(true);
+
+    const withRecipients = products.filter((product) => product.recipients.length > 0).length;
+    const withVibes = products.filter((product) => product.vibes.length > 0).length;
+    expect(withRecipients / products.length).toBeGreaterThanOrEqual(0.9);
+    expect(withVibes / products.length).toBeGreaterThanOrEqual(0.9);
   });
 });
 
@@ -108,5 +116,46 @@ describe("recommendation ranking", () => {
     }));
     const matches = rankRecommendations(products, swipes, "friend", "birthday", "Under ₱1,000");
     expect(matches.every(({ product }) => product.price >= min && product.price < max)).toBe(true);
+  });
+
+  it("never recommends sympathy products for a celebratory occasion", () => {
+    const deck = createSwipeDeck(products, "friend", "birthday");
+    const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
+      productId: product.id,
+      direction: index % 3 === 0 ? "like" : "pass",
+    }));
+    const matches = rankRecommendations(products, swipes, "friend", "birthday").slice(0, 12);
+    expect(matches.every(({ product }) => !product.categories.includes("sympathy"))).toBe(true);
+  });
+});
+
+describe("similarity and adaptivity", () => {
+  it("has a TF-IDF vector for every product", () => {
+    expect(products.every((product) => hasVector(product.id))).toBe(true);
+  });
+
+  it("adapts the deck tail differently based on what you liked (input → output)", () => {
+    const deck = createSwipeDeck(products, "friend", "birthday");
+    const firstFive = deck.slice(0, 5);
+    const liked: SwipeDecision[] = firstFive.map((product) => ({ productId: product.id, direction: "like" }));
+    const passed: SwipeDecision[] = firstFive.map((product) => ({ productId: product.id, direction: "pass" }));
+
+    const likedDeck = adaptDeckTail(products, deck, liked, "friend", "birthday");
+    const passedDeck = adaptDeckTail(products, deck, passed, "friend", "birthday");
+
+    // The already-seen prefix is preserved...
+    expect(likedDeck.slice(0, 5).map((product) => product.id)).toEqual(firstFive.map((product) => product.id));
+    // ...but the tail reflects the different signals.
+    expect(likedDeck.slice(5).map((product) => product.id).join()).not.toBe(passedDeck.slice(5).map((product) => product.id).join());
+    // No already-seen product reappears in the adapted tail.
+    const seen = new Set(firstFive.map((product) => product.id));
+    expect(likedDeck.slice(5).every((product) => !seen.has(product.id))).toBe(true);
+  });
+
+  it("surfaces emerging taste labels from likes, nothing from an empty session", () => {
+    const deck = createSwipeDeck(products, "partner", "anniversary");
+    const liked: SwipeDecision[] = deck.slice(0, 5).map((product) => ({ productId: product.id, direction: "like" }));
+    expect(emergingTaste(products, liked).length).toBeGreaterThan(0);
+    expect(emergingTaste(products, [])).toEqual([]);
   });
 });

@@ -27,7 +27,9 @@ import {
   MIN_LIKES_FOR_RECOMMENDATION,
   RESULTS_PER_GROUP,
   SWIPE_COUNT,
+  adaptDeckTail,
   createSwipeDeck,
+  emergingTaste,
   hasEnoughSignals,
   likedProductsForResults,
   rankRecommendations,
@@ -35,6 +37,8 @@ import {
   type Recommendation,
   type SwipeDecision,
 } from "./lib/recommendation";
+
+const ADAPT_AFTER = 5;
 import { SwipeCard } from "./components/SwipeCard";
 
 type Stage = "setup" | "swiping" | "result" | "bag";
@@ -303,7 +307,7 @@ function Result({
         <section className="results-group" aria-labelledby="new-title">
           <div className="results-group-heading">
             <Sparkles aria-hidden="true" />
-            <div><h2 id="new-title">New matches for you</h2><p>Unseen gifts chosen from your saved signals</p></div>
+            <div><h2 id="new-title">New matches for you</h2><p>Ranked by similarity to the gifts you saved</p></div>
           </div>
           <div className="results-grid">
             {recommendations.map(({ product, reasons }) => (
@@ -396,6 +400,7 @@ export default function App() {
   const [swipes, setSwipes] = useState<SwipeDecision[]>([]);
   const [bag, setBag] = useState<string[]>([]);
   const [toast, setToast] = useState("");
+  const [adapted, setAdapted] = useState(false);
   const decisionLock = useRef(false);
 
   const recommendations = useMemo(
@@ -403,6 +408,7 @@ export default function App() {
     [swipes, recipient, occasion, budget],
   );
   const likedProducts = useMemo(() => likedProductsForResults(products, swipes), [swipes]);
+  const tasteChips = useMemo(() => emergingTaste(products, swipes), [swipes]);
 
   const bagItems = useMemo(() => {
     const order: string[] = [];
@@ -445,29 +451,34 @@ export default function App() {
     setBudget(nextBudget);
     setDeck(createSwipeDeck(products, nextRecipient, nextOccasion, nextBudget));
     setSwipes([]);
+    setAdapted(false);
     setStage("swiping");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const decide = useCallback((direction: SwipeDecision["direction"]) => {
     if (decisionLock.current) return;
+    const product = deck[swipes.length];
+    if (!product) return;
     decisionLock.current = true;
 
-    setSwipes((currentSwipes) => {
-      const product = deck[currentSwipes.length];
-      if (!product) return currentSwipes;
+    const nextSwipes = [...swipes, { productId: product.id, direction }];
+    setSwipes(nextSwipes);
 
-      const nextSwipes = [...currentSwipes, { productId: product.id, direction }];
-      if (hasEnoughSignals(nextSwipes)) {
-        window.setTimeout(() => setStage("result"), 120);
-      }
-      return nextSwipes;
-    });
+    if (hasEnoughSignals(nextSwipes)) {
+      window.setTimeout(() => setStage("result"), 120);
+    } else if (!adapted && nextSwipes.length === ADAPT_AFTER && nextSwipes.some((swipe) => swipe.direction === "like")) {
+      // Mid-session personalization: re-tune the rest of the deck to what the
+      // shopper just liked. The moment that proves input → output.
+      setDeck((current) => adaptDeckTail(products, current, nextSwipes, recipient, occasion, budget));
+      setAdapted(true);
+      showToast("✨ Deck tuned to your taste");
+    }
 
     window.setTimeout(() => {
       decisionLock.current = false;
     }, 230);
-  }, [deck]);
+  }, [deck, swipes, adapted, recipient, occasion, budget, showToast]);
 
   const undo = useCallback(() => {
     decisionLock.current = false;
@@ -484,6 +495,7 @@ export default function App() {
   const restart = () => {
     decisionLock.current = false;
     setSwipes([]);
+    setAdapted(false);
     setStage("setup");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -526,6 +538,13 @@ export default function App() {
               <span>{formatChoice(occasion)}</span>
               {budget && <span>{budget}</span>}
             </div>
+            {likedCount >= 2 && tasteChips.length > 0 && (
+              <div className="taste-noticing" aria-live="polite">
+                <Sparkles aria-hidden="true" />
+                <span>Noticing</span>
+                {tasteChips.map((chip) => <em key={chip}>{chip}</em>)}
+              </div>
+            )}
           </section>
           <SwipeCard
             key={currentProduct.id}

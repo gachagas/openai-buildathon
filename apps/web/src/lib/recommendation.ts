@@ -1,4 +1,5 @@
 import type { GiftCategory, Occasion, Product, Recipient } from "./catalog";
+import { likedMeanVector, similarityTo, type TasteVector } from "./similar";
 
 export const SWIPE_COUNT = 10;
 export const MIN_LIKES_FOR_RECOMMENDATION = 3;
@@ -155,15 +156,20 @@ function buildReasons(
   recipient: Recipient,
   occasion: Occasion,
   preferredPrice: number | null,
+  styleSimilarity = 0,
 ) {
   const reasons: string[] = [];
   const likedCategories = new Set(likedProducts.flatMap((item) => item.categories));
   const likedVibes = new Set(likedProducts.flatMap((item) => item.vibes));
+  const likedColors = new Set(likedProducts.flatMap((item) => item.colors ?? []));
   const matchedCategory = product.categories.find((category) => likedCategories.has(category));
   const matchedVibe = product.vibes.find((vibe) => likedVibes.has(vibe));
+  const matchedColor = (product.colors ?? []).find((color) => likedColors.has(color));
 
   if (matchedCategory) reasons.push(`Matches the ${categoryNames[matchedCategory]} you kept`);
   if (matchedVibe) reasons.push(`Carries the ${matchedVibe} feel that showed up in your picks`);
+  if (styleSimilarity > 0.3) reasons.push("Close in style to the gifts you saved");
+  if (matchedColor) reasons.push(`Shares the ${matchedColor} palette of your picks`);
   if (product.occasions.includes(occasion)) reasons.push(`Well suited to ${formatOccasion(occasion)} gifting`);
   if (preferredPrice && Math.abs(Math.log(product.price / preferredPrice)) < 0.45) reasons.push("Stays close to the price range you preferred");
   if (product.recipients.includes(recipient)) reasons.push(`A thoughtful fit for your ${recipient}`);
@@ -171,15 +177,18 @@ function buildReasons(
   return [...new Set(reasons)].slice(0, 3);
 }
 
-export function rankRecommendations(
-  allProducts: Product[],
-  swipes: SwipeDecision[],
-  recipient: Recipient,
-  occasion: Occasion,
-  budget?: Budget | null,
-): Recommendation[] {
-  const byId = new Map(allProducts.map((product) => [product.id, product]));
-  const seenIds = new Set(swipes.map((swipe) => swipe.productId));
+interface LearnedTaste {
+  categoryWeights: Map<string, number>;
+  vibeWeights: Map<string, number>;
+  likedProducts: Product[];
+  preferredPrice: number | null;
+  taste: TasteVector | null;
+}
+
+// The learned session model: category/vibe weights from every swipe, the median
+// liked price, and the TF-IDF taste vector (mean of liked products) that powers
+// the Pinterest-style style similarity.
+function learnFromSwipes(byId: Map<string, Product>, swipes: SwipeDecision[]): LearnedTaste {
   const categoryWeights = new Map<string, number>();
   const vibeWeights = new Map<string, number>();
   const likedProducts: Product[] = [];
@@ -193,23 +202,103 @@ export function rankRecommendations(
     product.vibes.forEach((vibe) => addWeight(vibeWeights, vibe, multiplier * (swipe.direction === "like" ? 1.5 : 0.55)));
   }
 
-  const preferredPrice = median(likedProducts.map((product) => product.price));
+  return {
+    categoryWeights,
+    vibeWeights,
+    likedProducts,
+    preferredPrice: median(likedProducts.map((product) => product.price)),
+    taste: likedMeanVector(likedProducts.map((product) => product.id)),
+  };
+}
+
+// Tag-based context/preference score blended with vector style similarity.
+// Returns [score, styleSimilarity] so callers can surface the similarity as a reason.
+function blendScore(product: Product, learned: LearnedTaste, recipient: Recipient, occasion: Occasion): [number, number] {
+  let score = contextScore(product, recipient, occasion);
+  score += product.categories.reduce((sum, category) => sum + (learned.categoryWeights.get(category) ?? 0), 0);
+  score += product.vibes.reduce((sum, vibe) => sum + (learned.vibeWeights.get(vibe) ?? 0), 0);
+  if (learned.preferredPrice) {
+    score += Math.max(-1.5, 2.25 - Math.abs(Math.log(product.price / learned.preferredPrice)) * 3.2);
+  }
+  const similarity = learned.taste ? similarityTo(learned.taste, product.id) : 0;
+  score += 6 * similarity;
+  score += (stableNumber(product.id) % 1000) / 100000;
+  return [score, similarity];
+}
+
+export function rankRecommendations(
+  allProducts: Product[],
+  swipes: SwipeDecision[],
+  recipient: Recipient,
+  occasion: Occasion,
+  budget?: Budget | null,
+): Recommendation[] {
+  const byId = new Map(allProducts.map((product) => [product.id, product]));
+  const seenIds = new Set(swipes.map((swipe) => swipe.productId));
+  const learned = learnFromSwipes(byId, swipes);
 
   return eligibleProducts(allProducts, occasion, budget)
     .filter((product) => !seenIds.has(product.id))
     .map((product) => {
-      let score = contextScore(product, recipient, occasion);
-      score += product.categories.reduce((sum, category) => sum + (categoryWeights.get(category) ?? 0), 0);
-      score += product.vibes.reduce((sum, vibe) => sum + (vibeWeights.get(vibe) ?? 0), 0);
-      if (preferredPrice) {
-        score += Math.max(-1.5, 2.25 - Math.abs(Math.log(product.price / preferredPrice)) * 3.2);
-      }
-      score += (stableNumber(product.id) % 1000) / 100000;
+      const [score, similarity] = blendScore(product, learned, recipient, occasion);
       return {
         product,
         score,
-        reasons: buildReasons(product, likedProducts, recipient, occasion, preferredPrice),
+        reasons: buildReasons(product, learned.likedProducts, recipient, occasion, learned.preferredPrice, similarity),
       };
     })
     .sort((a, b) => b.score - a.score);
+}
+
+// Mid-session personalization: after the first few swipes, replace the unseen
+// tail of the deck with the products that best match what the user just liked
+// (category-diverse), keeping the already-seen prefix. This is what makes the
+// deck visibly react to the shopper's input.
+export function adaptDeckTail(
+  allProducts: Product[],
+  deck: Product[],
+  swipes: SwipeDecision[],
+  recipient: Recipient,
+  occasion: Occasion,
+  budget?: Budget | null,
+): Product[] {
+  const byId = new Map(allProducts.map((product) => [product.id, product]));
+  const learned = learnFromSwipes(byId, swipes);
+  const seenIds = new Set(swipes.map((swipe) => swipe.productId));
+  const prefix = deck.slice(0, swipes.length);
+  const targetTail = Math.max(SWIPE_COUNT - swipes.length + 4, 4);
+
+  const ranked = eligibleProducts(allProducts, occasion, budget)
+    .filter((product) => !seenIds.has(product.id))
+    .map((product) => ({ product, score: blendScore(product, learned, recipient, occasion)[0] }))
+    .sort((a, b) => b.score - a.score);
+
+  const perCategory = new Map<string, number>();
+  const tail: Product[] = [];
+  const overflow: Product[] = [];
+  for (const { product } of ranked) {
+    const category = primaryCategory(product);
+    const seen = perCategory.get(category) ?? 0;
+    if (seen < 2 && tail.length < targetTail) {
+      perCategory.set(category, seen + 1);
+      tail.push(product);
+    } else if (tail.length < targetTail) {
+      overflow.push(product);
+    }
+  }
+  return [...prefix, ...tail, ...overflow].slice(0, prefix.length + targetTail);
+}
+
+// Human-readable snapshot of the learned taste (top positive vibes + categories),
+// for the live "we're noticing…" chips. Truth from the ranker, not decoration.
+export function emergingTaste(allProducts: Product[], swipes: SwipeDecision[], limit = 3): string[] {
+  const byId = new Map(allProducts.map((product) => [product.id, product]));
+  const { vibeWeights, categoryWeights } = learnFromSwipes(byId, swipes);
+  const labelled = [
+    ...[...vibeWeights.entries()],
+    ...[...categoryWeights.entries()].map(([key, weight]) => [categoryNames[key as GiftCategory] ?? key, weight] as [string, number]),
+  ]
+    .filter(([, weight]) => weight > 0)
+    .sort((a, b) => b[1] - a[1]);
+  return [...new Set(labelled.map(([label]) => label))].slice(0, limit);
 }

@@ -26,6 +26,7 @@ export interface Product {
   occasions: Occasion[];
   recipients: Recipient[];
   vibes: string[];
+  colors: string[];
   hubs: string[];
 }
 

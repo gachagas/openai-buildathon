@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&amp;family=Noto+Sans+SC:wght@400;500;700&amp;family=Roboto:wght@400;500;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;600&amp;family=Inter:wght@400;600;700&amp;family=Space+Grotesk:wght@500;700&amp;family=Instrument+Sans:wght@400;600;700&amp;display=swap">
+  <style>
+    html, body { margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
+    a { color: inherit; }
+    a:hover { opacity: 0.8; }
+    input:focus, select:focus, textarea:focus, button:focus { outline: none; }
+    button { font: inherit; }
+    .tml-hs::-webkit-scrollbar { display: none; }
+    @keyframes tml-spin { to { transform: rotate(360deg); } }
+    @keyframes tml-sk { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.8; } }
+  </style>
+</helmet>
+<div style="--bg: {{ c.bg }}; --sf: {{ c.surface }}; --sf2: {{ sf2 }}; --tx: {{ c.text }}; --sub: {{ c.sub }}; --bd: {{ c.border }}; --ac: {{ c.accent }}; --oac: {{ c.onAccent }}; --dg: {{ dg }}; --r: {{ rCss }}; --rs: {{ rsCss }}; --rb: {{ rbCss }}; --hf: {{ t.headStack }}; --bf: {{ t.bodyStack }}; --tt: {{ tt }}; min-height: 100vh; background: var(--bg); color: var(--tx); font-family: var(--bf); transition: background 0.35s, color 0.35s;">
+
+  <!-- ============ STICKY HEADER + SWITCHER ============ -->
+  <div data-screen-label="Header" style="position: sticky; top: 0; z-index: 60; background: var(--sf); border-bottom: 1px solid var(--bd); transition: background 0.35s;">
+    <div style="max-width: 1320px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 11px; min-width: 150px;">
+        <div style="width: 38px; height: 38px; flex: none; border-radius: 50%; background: var(--ac); color: var(--oac); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; font-family: var(--hf); transition: background 0.35s;">{{ markChar }}</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.1em;">{{ idxLabel }}</div>
+          <div style="font-size: 9.5px; letter-spacing: 0.16em; color: var(--sub); font-weight: 700;">LIBRARY</div>
+        </div>
+      </div>
+
+      <div style="flex: 1; text-align: center; min-width: 0;">
+        <div style="font-size: 20px; font-weight: 900; font-family: var(--hf); text-transform: var(--tt); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ t.name }}</div>
+        <div style="display: {{ end }}; font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ t.en }}</div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 150px; justify-content: flex-end;">
+        <div style="display: flex; border: 2px solid var(--tx); border-radius: {{ rbCss }}; overflow: hidden;">
+          <button onClick="{{ goPrev }}" aria-label="Previous" style="width: 42px; height: 40px; border: none; border-right: 2px solid var(--tx); background: transparent; color: var(--tx); font-size: 18px; font-weight: 800; cursor: pointer;" style-hover="background: var(--tx); color: var(--bg);" style-active="transform: scale(0.94);">‹</button>
+          <button onClick="{{ goNext }}" aria-label="Next" style="width: 42px; height: 40px; border: none; background: transparent; color: var(--tx); font-size: 18px; font-weight: 800; cursor: pointer;" style-hover="background: var(--tx); color: var(--bg);" style-active="transform: scale(0.94);">›</button>
+        </div>
+        <button onClick="{{ toggleDark }}" style="height: 40px; padding: 0 14px; border: 1px solid var(--bd); background: var(--bg); color: var(--tx); border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;" style-hover="border-color: var(--tx);">{{ modeTxt }}</button>
+      </div>
+    </div>
+
+    <!-- library shelf -->
+    <div class="tml-hs" style="max-width: 1320px; margin: 0 auto; padding: 0 24px 11px; display: flex; gap: 8px; overflow-x: auto;">
+      <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="16">
+        <button onClick="{{ ch.go }}" style="padding: 7px 13px; border-radius: 999px; border: 1px solid {{ ch.bd }}; background: {{ ch.bg }}; color: {{ ch.fg }}; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; flex: none; transition: all 0.2s;" style-hover="border-color: var(--tx);">{{ ch.n }}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ============ BODY: DRAWER + MAIN ============ -->
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 24px; display: flex; gap: 34px; align-items: flex-start;">
+
+    <!-- LEFT NAV DRAWER (SidebarNav primitive, live) -->
+    <aside data-screen-label="Nav drawer" style="position: sticky; top: 108px; width: 236px; flex: none; align-self: flex-start; max-height: calc(100vh - 128px); overflow-y: auto; padding: 26px 0 40px;" data-drawer>
+      <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; color: var(--sub); text-transform: uppercase; padding: 0 14px 12px;">{{ CH.contents }}</div>
+      <nav style="display: flex; flex-direction: column; gap: 2px;">
+        <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="11">
+          <button onClick="{{ g.go }}" style="display: flex; align-items: center; gap: 12px; text-align: left; padding: 9px 14px; border: none; border-left: 3px solid {{ g.barC }}; background: {{ g.bg }}; color: {{ g.fg }}; cursor: pointer; border-radius: 0 var(--rs) var(--rs) 0; transition: all 0.18s;" style-hover="background: var(--sf);">
+            <span style="font-family: var(--hf); font-size: 11px; font-weight: 800; width: 20px; flex: none; color: {{ g.numC }};">{{ g.num }}</span>
+            <span style="min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 13.5px; font-weight: {{ g.fw }}; line-height: 1.25;">{{ g.t }}</span>
+              <span style="display: {{ end }}; font-size: 10.5px; line-height: 1.2; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ g.en }}</span>
+            </span>
+          </button>
+        </sc-for>
+      </nav>
+      <div style="margin: 20px 14px 0; padding: 12px; border: 1px dashed var(--bd); border-radius: var(--rs); font-size: 11px; color: var(--sub); line-height: 1.6;">{{ CH.kbdHint }}</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main style="flex: 1; min-width: 0; padding-bottom: 72px;">
+
+      <!-- HERO -->
+      <div data-screen-label="Hero" style="padding: 48px 0 4px;">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.16em; color: var(--ac); text-transform: uppercase;">{{ t.kicker }}</div>
+        <h1 style="margin: 16px 0 0; font-size: 44px; line-height: 1.16; font-weight: 900; font-family: var(--hf); text-transform: var(--tt); max-width: 820px; text-wrap: pretty;">{{ t.title }}</h1>
+        <div style="display: {{ end }}; margin-top: 12px; font-size: 16px; line-height: 1.6; color: var(--sub); max-width: 720px;">{{ t.titleEn }}</div>
+        <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <sc-for list="{{ heroTags }}" as="tag" hint-placeholder-count="3">
+            <span style="padding: 6px 12px; border: 1px solid var(--bd); border-radius: 999px; font-size: 12px; color: var(--sub); font-weight: 600; background: var(--sf);">{{ tag.x }}</span>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- ============ BENTO / SAMPLE LAYOUTS ============ -->
+      <section data-screen-label="Bento">
+        <div id="sec-bento" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 60px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--ac); color: var(--oac); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.bento.num }}</div>
+          <div style="flex: 1;">
+            <div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.bento.t }}</div>
+            <div style="display: {{ end }}; font-size: 13px; color: var(--sub);">{{ gm.bento.en }} · {{ CH.bentoNote }}</div>
+          </div>
+        </div>
+        <div style="height: 3px; background: var(--ac); margin: 14px 0 22px;"></div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(116px, auto); gap: 12px;">
+          <!-- A: hero metric -->
+          <div style="grid-column: 1 / 3; grid-row: 1 / 3; background: var(--ac); color: var(--oac); border-radius: var(--r); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8;">{{ t.cardKicker }}</div>
+              <div style="font-size: 40px; font-weight: 900; font-family: var(--hf); margin-top: 8px; line-height: 1;">{{ bento.metric }}</div>
+              <div style="font-size: 13px; opacity: 0.85; margin-top: 6px;">{{ t.cardTitle }}</div>
+            </div>
+            <div style="display: flex; align-items: flex-end; gap: 6px; height: 46px;">
+              <sc-for list="{{ bento.bars }}" as="b" hint-placeholder-count="6">
+                <div style="flex: 1; height: {{ b.h }}; background: var(--oac); opacity: 0.85; border-radius: 3px 3px 0 0;"></div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- B: nav list -->
+          <div style="grid-column: 3 / 5; grid-row: 1 / 2; background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; justify-content: center;">
+            <sc-for list="{{ bento.nav }}" as="n" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--rs); background: {{ n.bg }}; color: {{ n.fg }}; font-size: 13px; font-weight: {{ n.fw }};">
+                <span style="width: 8px; height: 8px; border-radius: 2px; background: {{ n.dot }};"></span>{{ n.l }}
+              </div>
+            </sc-for>
+          </div>
+          <!-- E: form -->
+          <div style="grid-column: 3 / 5; grid-row: 2 / 3; background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 9px; justify-content: center;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: var(--tt);">{{ t.formLabel }}</div>
+            <div style="display: flex; gap: 8px;">
+              <div style="flex: 1; padding: 10px 12px; border: 1.5px solid var(--bd); border-radius: var(--rs); font-size: 12px; color: var(--sub);">{{ t.formPh }}</div>
+              <button style="padding: 0 16px; border: none; background: var(--ac); color: var(--oac); border-radius: var(--rb); font-size: 12px; font-weight: 800; cursor: pointer; text-transform: var(--tt);">{{ t.btnP }}</button>
+            </div>
+          </div>
+          <!-- F: alert -->
+          <div style="grid-column: 1 / 3; grid-row: 3 / 4; background: {{ bento.alert.bg }}; border-left: 5px solid {{ bento.alert.c }}; border-radius: var(--rs); padding: 16px; display: flex; gap: 13px; align-items: center;">
+            <div style="width: 13px; height: 13px; flex: none; background: {{ bento.alert.c }}; border-radius: 3px;"></div>
+            <div><div style="font-weight: 800; font-size: 14px; color: {{ bento.alert.c }};">{{ bento.alert.t }}</div><div style="font-size: 12.5px; margin-top: 2px; line-height: 1.5;">{{ bento.alert.b }}</div></div>
+          </div>
+          <!-- C: avatar -->
+          <div style="grid-column: 3 / 4; grid-row: 3 / 4; background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--ac); color: var(--oac); display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: var(--hf);">{{ bento.avatar }}</div>
+            <div style="font-size: 12px; font-weight: 700; line-height: 1.3;">{{ bento.avatarName }}</div>
+          </div>
+          <!-- D: tags -->
+          <div style="grid-column: 4 / 5; grid-row: 3 / 4; background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r); padding: 14px; display: flex; flex-wrap: wrap; gap: 6px; align-content: center;">
+            <sc-for list="{{ bento.tags }}" as="tg" hint-placeholder-count="3">
+              <span style="padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 800; background: {{ tg.bg }}; color: {{ tg.c }};">{{ tg.l }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FOUNDATIONS ============ -->
+      <section data-screen-label="Foundations">
+        <div id="sec-foundations" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.foundations.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.foundations.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Color · Typography · Spacing · Radius · Shadow · Breakpoints · Motion · Z-index</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+
+        <!-- Color -->
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin: 0 0 12px;">{{ P.color }}</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+          <sc-for list="{{ pal }}" as="p" hint-placeholder-count="6">
+            <div onClick="{{ p.copy }}" style="border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden; background: var(--sf); cursor: pointer; transition: transform 0.15s;" style-hover="transform: translateY(-3px);">
+              <div style="height: 68px; background: {{ p.hex }}; display: flex; align-items: flex-end; padding: 9px;"><span style="background: rgba(255,255,255,0.94); color: #111; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px;">{{ p.chip }}</span></div>
+              <div style="padding: 10px 12px;"><div style="font-weight: 700; font-size: 13px;">{{ p.name }}</div><div style="display: {{ end }}; font-size: 11px; color: var(--sub);">{{ p.en }}</div><div style="font-size: 10.5px; color: var(--sub); margin-top: 4px; font-family: ui-monospace, Menlo, monospace;">{{ p.hex }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Typography -->
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin: 34px 0 8px;">{{ P.typography }}</div>
+        <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden;">
+          <sc-for list="{{ typeRows }}" as="r" hint-placeholder-count="4">
+            <div style="display: flex; align-items: baseline; gap: 20px; padding: 14px 18px; border-bottom: 1px solid var(--bd);">
+              <div style="width: 150px; flex: none; font-size: 11.5px; color: var(--sub); font-weight: 700;">{{ r.n }} · {{ r.px }}</div>
+              <div style="font-size: {{ r.px }}; font-weight: {{ r.w }}; font-family: var(--hf); line-height: 1.25; text-transform: var(--tt); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.x }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Spacing / Radius / Shadow row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 30px;">
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.spacing }}</div>
+            <div style="display: flex; flex-direction: column; gap: 9px;">
+              <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="6">
+                <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 34px; font-size: 11px; color: var(--sub); font-family: ui-monospace, Menlo, monospace;">{{ s.v }}</div><div style="height: 12px; width: {{ s.px }}; background: var(--ac); border-radius: 2px;"></div></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.radius }}</div>
+            <div style="display: flex; gap: 16px; align-items: flex-end;">
+              <sc-for list="{{ radii }}" as="rd" hint-placeholder-count="3">
+                <div style="text-align: center;"><div style="width: 58px; height: 58px; background: var(--ac); border-radius: {{ rd.px }};"></div><div style="font-size: 11px; color: var(--sub); margin-top: 7px; font-weight: 600;">{{ rd.n }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.shadow }}</div>
+            <div style="display: flex; gap: 16px;">
+              <sc-for list="{{ shadows }}" as="sh" hint-placeholder-count="3">
+                <div style="text-align: center;"><div style="width: 54px; height: 54px; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--rs); box-shadow: {{ sh.v }};"></div><div style="font-size: 11px; color: var(--sub); margin-top: 9px; font-weight: 600;">{{ sh.n }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakpoints / Motion / Z-index row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px;">
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.breakpoints }}</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <sc-for list="{{ bps }}" as="bp" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 10px;"><div style="width: 24px; font-size: 11px; font-weight: 800;">{{ bp.n }}</div><div style="height: 10px; width: {{ bp.w }}; background: var(--ac); opacity: 0.7; border-radius: 2px;"></div><div style="font-size: 10.5px; color: var(--sub); font-family: ui-monospace, Menlo, monospace;">{{ bp.v }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.motion }}</div>
+            <div onClick="{{ toggleMotion }}" style="height: 44px; border: 1px solid var(--bd); border-radius: 999px; position: relative; cursor: pointer; background: var(--bg);">
+              <div style="position: absolute; top: 6px; left: {{ motionX }}; width: 32px; height: 32px; border-radius: 50%; background: var(--ac); transition: left 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);"></div>
+            </div>
+            <div style="font-size: 11px; color: var(--sub); margin-top: 10px;">{{ CH.motionNote }}</div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.zindex }}</div>
+            <div style="position: relative; height: 74px;">
+              <sc-for list="{{ zLayers }}" as="z" hint-placeholder-count="3">
+                <div style="position: absolute; top: {{ z.o }}; left: {{ z.o }}; width: 92px; height: 52px; background: var(--sf); border: 1.5px solid var(--ac); border-radius: var(--rs); box-shadow: 0 6px 14px rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--ac);">{{ z.l }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ LAYOUT ============ -->
+      <section data-screen-label="Layout">
+        <div id="sec-layout" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.layout.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.layout.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Box · Stack · Grid · Container · Divider</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.box }}</div>
+            <div style="border: 2px dashed var(--ac); border-radius: var(--rs); padding: 14px; background: {{ tint }};"><div style="background: var(--ac); opacity: 0.25; border-radius: 4px; height: 42px;"></div></div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.stack }}</div>
+            <div style="display: flex; flex-direction: column; gap: 7px;"><div style="height: 16px; background: var(--ac); opacity: 0.85; border-radius: 3px;"></div><div style="height: 16px; background: var(--ac); opacity: 0.6; border-radius: 3px;"></div><div style="height: 16px; background: var(--ac); opacity: 0.4; border-radius: 3px;"></div></div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.grid }}</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;"><sc-for list="{{ gridCells }}" as="g" hint-placeholder-count="6"><div style="height: 26px; background: var(--ac); opacity: {{ g.o }}; border-radius: 3px;"></div></sc-for></div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.container }}</div>
+            <div style="background: {{ tint }}; border-radius: var(--rs); padding: 8px;"><div style="max-width: 70%; margin: 0 auto; background: var(--ac); opacity: 0.7; height: 42px; border-radius: 3px;"></div></div>
+            <div style="font-size: 10.5px; color: var(--sub); margin-top: 8px;">{{ U.container }}</div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.divider }}</div>
+            <div style="display: flex; align-items: center; gap: 12px; color: var(--sub);"><div style="flex: 1; height: 1px; background: var(--bd);"></div><span style="font-size: 11px;">{{ U.divider }}</span><div style="flex: 1; height: 1px; background: var(--bd);"></div></div>
+            <div style="height: 1px; background: var(--bd); margin-top: 18px;"></div>
+            <div style="border-left: 3px solid var(--ac); padding-left: 10px; margin-top: 18px; font-size: 12px; color: var(--sub);">{{ P.divider }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TEXT ============ -->
+      <section data-screen-label="Text">
+        <div id="sec-text" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.text.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.text.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Text · Heading · Label · Caption · Link</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 26px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ac);">{{ txt.label }}</div>
+          <div style="font-size: 32px; font-weight: 900; font-family: var(--hf); text-transform: var(--tt); line-height: 1.2;">{{ txt.heading }}</div>
+          <p style="font-size: 15px; line-height: 1.75; margin: 0; max-width: 640px; text-wrap: pretty;">{{ txt.body }} <a href="#sec-actions" style="color: var(--ac); font-weight: 700;">{{ txt.link }}</a>.</p>
+          <div style="font-size: 12px; color: var(--sub);">{{ txt.caption }}</div>
+        </div>
+      </section>
+
+      <!-- ============ ACTIONS ============ -->
+      <section data-screen-label="Actions">
+        <div id="sec-actions" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.actions.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.actions.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Button · IconButton · Menu</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.button }}</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+          <button style="padding: 13px 26px; border: none; background: var(--ac); color: var(--oac); border-radius: var(--rb); font-size: 14px; font-weight: 800; cursor: pointer; font-family: var(--bf); text-transform: var(--tt);" style-hover="filter: brightness(1.08);" style-active="transform: scale(0.97);">{{ t.btnP }}</button>
+          <button style="padding: 13px 26px; border: none; background: var(--tx); color: var(--bg); border-radius: var(--rb); font-size: 14px; font-weight: 800; cursor: pointer; font-family: var(--bf); text-transform: var(--tt);" style-hover="opacity: 0.85;" style-active="transform: scale(0.97);">{{ t.btnS }}</button>
+          <button style="padding: 11px 24px; border: 2px solid var(--ac); background: transparent; color: var(--ac); border-radius: var(--rb); font-size: 14px; font-weight: 800; cursor: pointer; font-family: var(--bf); text-transform: var(--tt);" style-hover="background: var(--ac); color: var(--oac);" style-active="transform: scale(0.97);">{{ t.btnG }}</button>
+          <button disabled="{{ true }}" style="padding: 13px 26px; border: none; background: var(--bd); color: var(--sub); border-radius: var(--rb); font-size: 14px; font-weight: 800; cursor: not-allowed; font-family: var(--bf); text-transform: var(--tt); opacity: 0.7;">{{ t.btnD }}</button>
+        </div>
+        <div style="display: flex; gap: 40px; flex-wrap: wrap; margin-top: 30px;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.iconButton }}</div>
+            <div style="display: flex; gap: 10px;">
+              <sc-for list="{{ iconBtns }}" as="ib" hint-placeholder-count="4">
+                <button style="width: 44px; height: 44px; border: 1px solid var(--bd); background: var(--sf); color: var(--tx); border-radius: {{ ib.rad }}; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;" style-hover="border-color: var(--ac); color: var(--ac);">{{ ib.g }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.menu }}</div>
+            <div style="width: 200px; border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); box-shadow: 0 8px 24px rgba(0,0,0,0.14); overflow: hidden; padding: 6px;">
+              <sc-for list="{{ menuItems }}" as="mi" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: var(--rs); font-size: 13.5px; font-weight: {{ mi.fw }}; background: {{ mi.bg }}; color: {{ mi.fg }};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ mi.dot }};"></span>{{ mi.l }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FORMS ============ -->
+      <section data-screen-label="Forms">
+        <div id="sec-forms" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.forms.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.forms.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Field · Input · Textarea · Select · Checkbox · RadioGroup · Switch</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px;">
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 800; margin-bottom: 7px; text-transform: var(--tt);">{{ t.formLabel }}</label>
+              <input placeholder="{{ t.formPh }}" style="width: 100%; padding: 12px 15px; font-size: 14px; border: 2px solid var(--bd); border-radius: var(--rs); background: var(--sf); color: var(--tx); font-family: var(--bf);" style-focus="border-color: var(--ac);">
+              <div style="font-size: 12px; color: var(--sub); margin-top: 6px;">{{ t.formHelp }}</div>
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 800; margin-bottom: 7px; text-transform: var(--tt);">{{ P.textarea }}</label>
+              <textarea placeholder="{{ t.formPh }}" rows="3" style="width: 100%; padding: 12px 15px; font-size: 14px; border: 2px solid var(--bd); border-radius: var(--rs); background: var(--sf); color: var(--tx); font-family: var(--bf); resize: vertical;" style-focus="border-color: var(--ac);"></textarea>
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 800; margin-bottom: 7px; text-transform: var(--tt);">{{ t.formSel }}</label>
+              <select style="width: 100%; padding: 12px 15px; font-size: 14px; border: 2px solid var(--bd); border-radius: var(--rs); background: var(--sf); color: var(--tx); font-family: var(--bf); cursor: pointer;" style-focus="border-color: var(--ac);">
+                <sc-for list="{{ opts }}" as="o" hint-placeholder-count="4"><option>{{ o.x }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden; align-self: start;">
+            <div onClick="{{ toggleCheck }}" style="display: flex; align-items: center; gap: 13px; padding: 15px 18px; border-bottom: 1px solid var(--bd); cursor: pointer;" style-hover="background: var(--bg);">
+              <div style="width: 24px; height: 24px; flex: none; border: 2.5px solid {{ checkBd }}; background: {{ checkBg }}; color: var(--oac); border-radius: var(--rs); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;">{{ checkMark }}</div>
+              <div style="font-size: 14px; font-weight: 600;">{{ t.check }}</div>
+            </div>
+            <div style="padding: 6px 18px 4px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: var(--sub); letter-spacing: 0.08em;">{{ P.radio }}</div>
+            <sc-for list="{{ radios }}" as="rd" hint-placeholder-count="2">
+              <div onClick="{{ rd.go }}" style="display: flex; align-items: center; gap: 13px; padding: 12px 18px; cursor: pointer;" style-hover="background: var(--bg);">
+                <div style="width: 22px; height: 22px; flex: none; border: 2.5px solid {{ rd.bd }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><div style="width: 11px; height: 11px; border-radius: 50%; background: {{ rd.dot }};"></div></div>
+                <div style="font-size: 14px; font-weight: 600;">{{ rd.l }}</div>
+              </div>
+            </sc-for>
+            <div style="padding: 6px 18px 4px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: var(--sub); letter-spacing: 0.08em; border-top: 1px solid var(--bd);">{{ P.switch }}</div>
+            <sc-for list="{{ toggles }}" as="tg" hint-placeholder-count="2">
+              <div onClick="{{ tg.go }}" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 18px; cursor: pointer;" style-hover="background: var(--bg);">
+                <div style="font-size: 14px; font-weight: 600;">{{ tg.l }}</div>
+                <div style="width: 50px; height: 28px; flex: none; border-radius: 999px; background: {{ tg.bg }}; position: relative; transition: background 0.25s;"><div style="position: absolute; top: 3px; left: {{ tg.x }}; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: left 0.25s;"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SURFACES ============ -->
+      <section data-screen-label="Surfaces">
+        <div id="sec-surfaces" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.surfaces.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.surfaces.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Card · Dialog · Drawer · Popover · Tooltip · Accordion · Tabs</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start;">
+
+          <!-- Card -->
+          <div>
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.card }}</div>
+            <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07);">
+              <div style="height: 6px; background: var(--ac);"></div>
+              <div style="padding: 20px 22px;">
+                <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--ac); text-transform: uppercase;">{{ t.cardKicker }}</div>
+                <div style="font-size: 23px; font-weight: 900; margin-top: 8px; font-family: var(--hf); text-transform: var(--tt);">{{ t.cardTitle }}</div>
+                <div style="font-size: 13px; color: var(--sub); margin-top: 2px;">{{ t.cardSub }}</div>
+                <p style="font-size: 14px; line-height: 1.7; margin: 12px 0 16px; text-wrap: pretty;">{{ t.cardBody }}</p>
+                <sc-for list="{{ cardRows }}" as="r" hint-placeholder-count="2"><div style="display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px solid var(--bd); font-size: 13px;"><span style="color: var(--sub); font-weight: 600;">{{ r.k }}</span><span style="font-weight: 800; text-align: right;">{{ r.v }}</span></div></sc-for>
+                <div style="display: flex; gap: 10px; margin-top: 16px;"><button style="padding: 11px 20px; border: none; background: var(--ac); color: var(--oac); border-radius: var(--rb); font-size: 13px; font-weight: 800; cursor: pointer; text-transform: var(--tt); font-family: var(--bf);" style-hover="filter: brightness(1.08);">{{ t.cardA1 }}</button><button style="padding: 11px 20px; border: 2px solid var(--bd); background: transparent; color: var(--tx); border-radius: var(--rb); font-size: 13px; font-weight: 800; cursor: pointer; text-transform: var(--tt); font-family: var(--bf);" style-hover="border-color: var(--tx);">{{ t.cardA2 }}</button></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dialog + Drawer -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.dialog }}</div>
+              <div style="border-radius: var(--r); background: rgba(0,0,0,0.32); padding: 26px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 100%; max-width: 300px; background: var(--sf); border-radius: var(--r); box-shadow: 0 18px 50px rgba(0,0,0,0.4); overflow: hidden;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--bd);"><span style="font-weight: 800; font-size: 15px; font-family: var(--hf);">{{ U.dialogTitle }}</span><span style="color: var(--sub); font-size: 16px;">✕</span></div>
+                  <div style="padding: 16px 18px; font-size: 13.5px; color: var(--sub); line-height: 1.6;">{{ t.cardSub }}</div>
+                  <div style="display: flex; gap: 10px; justify-content: flex-end; padding: 0 18px 16px;"><button style="padding: 9px 16px; border: 1px solid var(--bd); background: transparent; color: var(--tx); border-radius: var(--rb); font-size: 12.5px; font-weight: 800; cursor: pointer; text-transform: var(--tt);">{{ t.btnG }}</button><button style="padding: 9px 16px; border: none; background: var(--ac); color: var(--oac); border-radius: var(--rb); font-size: 12.5px; font-weight: 800; cursor: pointer; text-transform: var(--tt);">{{ t.btnP }}</button></div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.drawer }}</div>
+              <div style="border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden; display: flex; height: 130px; background: rgba(0,0,0,0.18);">
+                <div style="width: 62%; background: var(--sf); border-right: 1px solid var(--bd); padding: 14px; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub);">{{ P.sidebarNav }}</div>
+                  <sc-for list="{{ drawerNav }}" as="d" hint-placeholder-count="3"><div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--rs); background: {{ d.bg }}; color: {{ d.fg }}; font-size: 12px; font-weight: {{ d.fw }};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ d.dot }};"></span>{{ d.l }}</div></sc-for>
+                </div>
+                <div style="flex: 1;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Popover + Tooltip + Accordion -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; gap: 22px; flex-wrap: wrap;">
+              <div>
+                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.popover }}</div>
+                <div style="width: 178px; background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r); box-shadow: 0 10px 28px rgba(0,0,0,0.16); padding: 12px;">
+                  <div style="font-size: 12px; font-weight: 800; margin-bottom: 8px;">{{ U.popover }}</div>
+                  <sc-for list="{{ popActions }}" as="pa" hint-placeholder-count="2"><div style="font-size: 12.5px; padding: 6px 8px; border-radius: var(--rs); color: var(--sub);" style-hover="background: var(--bg); color: var(--tx);">{{ pa.l }}</div></sc-for>
+                  <div style="width: 12px; height: 12px; background: var(--sf); border-right: 1px solid var(--bd); border-bottom: 1px solid var(--bd); transform: rotate(45deg); margin: 6px auto -18px;"></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.tooltip }}</div>
+                <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 0;">
+                  <div style="background: var(--tx); color: var(--bg); font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: var(--rs);">{{ U.tooltip }}</div>
+                  <div style="width: 10px; height: 10px; background: var(--tx); transform: rotate(45deg); margin-top: -5px;"></div>
+                  <button style="margin-top: 8px; width: 40px; height: 40px; border: 1px solid var(--bd); background: var(--sf); color: var(--tx); border-radius: 50%; font-size: 15px; cursor: pointer;">?</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.accordion }}</div>
+              <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden;">
+                <sc-for list="{{ accItems }}" as="a" hint-placeholder-count="3">
+                  <div style="border-bottom: 1px solid var(--bd);">
+                    <div onClick="{{ a.go }}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; cursor: pointer; font-weight: 700; font-size: 13.5px;" style-hover="background: var(--bg);"><span>{{ a.t }}</span><span style="color: var(--ac); font-size: 15px;">{{ a.sign }}</span></div>
+                    <div style="display: {{ a.show }}; padding: 0 16px 14px; font-size: 13px; color: var(--sub); line-height: 1.6;">{{ a.b }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin: 26px 0 12px;">{{ P.tabs }}</div>
+        <div style="max-width: 640px; border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden;">
+          <div style="display: flex; border-bottom: 1px solid var(--bd);">
+            <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4"><button onClick="{{ tb.go }}" style="flex: 1; padding: 14px 8px; border: none; background: transparent; color: {{ tb.fg }}; font-size: 13.5px; font-weight: {{ tb.fw }}; cursor: pointer; border-bottom: 3px solid {{ tb.bc }}; font-family: var(--bf); text-transform: var(--tt); transition: all 0.2s;" style-hover="color: var(--tx);">{{ tb.l }}</button></sc-for>
+          </div>
+          <div style="padding: 22px; font-size: 14px; color: var(--sub);"><span style="color: var(--tx); font-weight: 800;">{{ viewing }}</span></div>
+        </div>
+      </section>
+
+      <!-- ============ NAVIGATION ============ -->
+      <section data-screen-label="Navigation">
+        <div id="sec-nav" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.nav.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.nav.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">SidebarNav · NavItem · Breadcrumbs · Pagination</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+        <div style="display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.sidebarNav }}</div>
+            <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 8px; display: flex; flex-direction: column; gap: 2px;">
+              <sc-for list="{{ sideNav }}" as="s" hint-placeholder-count="4"><div style="display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: var(--rs); border-left: 3px solid {{ s.barC }}; background: {{ s.bg }}; color: {{ s.fg }}; font-size: 13.5px; font-weight: {{ s.fw }};"><span style="width: 7px; height: 7px; border-radius: 2px; background: {{ s.dot }};"></span>{{ s.l }}</div></sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.breadcrumbs }}</div>
+              <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 13.5px;">
+                <sc-for list="{{ crumbs }}" as="cr" hint-placeholder-count="3"><span style="color: {{ cr.c }}; font-weight: {{ cr.fw }};">{{ cr.l }}</span><span style="color: var(--sub); display: {{ cr.sepShow }};">/</span></sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.pagination }}</div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button onClick="{{ pagePrev }}" style="width: 38px; height: 38px; border: 1px solid var(--bd); background: var(--sf); color: var(--tx); border-radius: var(--rs); font-size: 15px; cursor: pointer;">‹</button>
+                <sc-for list="{{ pages }}" as="pg" hint-placeholder-count="5"><button onClick="{{ pg.go }}" style="min-width: 38px; height: 38px; padding: 0 8px; border: 1px solid {{ pg.bd }}; background: {{ pg.bg }}; color: {{ pg.fg }}; border-radius: var(--rs); font-size: 13.5px; font-weight: 700; cursor: {{ pg.cur }};">{{ pg.l }}</button></sc-for>
+                <button onClick="{{ pageNext }}" style="width: 38px; height: 38px; border: 1px solid var(--bd); background: var(--sf); color: var(--tx); border-radius: var(--rs); font-size: 15px; cursor: pointer;">›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FEEDBACK ============ -->
+      <section data-screen-label="Feedback">
+        <div id="sec-feedback" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.feedback.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.feedback.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Alert · Toast · Badge · Spinner · Skeleton · EmptyState</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.alert }} · {{ P.toast }}</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; max-width: 680px;">
+          <sc-for list="{{ alerts }}" as="al" hint-placeholder-count="3"><div style="display: flex; gap: 14px; padding: 14px 16px; background: {{ al.bg }}; border-left: 5px solid {{ al.c }}; border-radius: var(--rs);"><div style="width: 12px; height: 12px; flex: none; margin-top: 4px; background: {{ al.c }}; border-radius: 3px;"></div><div><div style="font-weight: 800; font-size: 14px; color: {{ al.c }};">{{ al.t }}</div><div style="font-size: 13px; line-height: 1.6; margin-top: 3px;">{{ al.b }}</div></div></div></sc-for>
+          <div style="align-self: flex-start; display: flex; align-items: center; gap: 12px; padding: 13px 18px; background: var(--tx); color: var(--bg); border-radius: var(--r); box-shadow: 0 10px 28px rgba(0,0,0,0.22); margin-top: 4px;"><span style="width: 22px; height: 22px; border-radius: 50%; background: var(--ac); color: var(--oac); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900;">✓</span><span style="font-size: 13.5px; font-weight: 700;">{{ U.toast }}</span><span style="opacity: 0.6; font-size: 14px; margin-left: 8px;">✕</span></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 28px;">
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.badge }}</div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <sc-for list="{{ badges }}" as="b" hint-placeholder-count="4"><div style="display: flex; align-items: center; gap: 8px; padding: 7px 14px; border: 2px solid {{ b.c }}; background: {{ b.bg }}; border-radius: var(--rb);"><span style="font-weight: 900; font-size: 14px; color: {{ b.c }}; font-family: var(--hf);">{{ b.l }}</span><span style="font-size: 11px; color: var(--sub); font-weight: 600;">{{ b.sub }}</span></div></sc-for>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 18px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.spinner }} · {{ P.skeleton }}</div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+              <div style="width: 34px; height: 34px; border: 3px solid var(--bd); border-top-color: var(--ac); border-radius: 50%; animation: tml-spin 0.8s linear infinite;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;"><div style="height: 11px; background: var(--bd); border-radius: 3px; animation: tml-sk 1.4s ease-in-out infinite;"></div><div style="height: 11px; width: 70%; background: var(--bd); border-radius: 3px; animation: tml-sk 1.4s ease-in-out infinite; animation-delay: 0.2s;"></div><div style="height: 11px; width: 45%; background: var(--bd); border-radius: 3px; animation: tml-sk 1.4s ease-in-out infinite; animation-delay: 0.4s;"></div></div>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 24px 18px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.emptyState }}</div>
+            <div style="width: 44px; height: 44px; margin: 0 auto 12px; border: 2px dashed var(--sub); border-radius: var(--rs); display: flex; align-items: center; justify-content: center; color: var(--sub); font-size: 20px;">◇</div>
+            <div style="font-weight: 800; font-size: 14px;">{{ U.empty0 }}</div>
+            <div style="font-size: 12.5px; color: var(--sub); margin-top: 4px; line-height: 1.5;">{{ U.empty1 }}</div>
+            <button style="margin-top: 14px; padding: 9px 18px; border: none; background: var(--ac); color: var(--oac); border-radius: var(--rb); font-size: 12.5px; font-weight: 800; cursor: pointer; text-transform: var(--tt);">{{ t.btnP }}</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DATA ============ -->
+      <section data-screen-label="Data">
+        <div id="sec-data" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--tx); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.data.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.data.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">Table · List · Tag/Chip · Avatar</div></div>
+        </div>
+        <div style="height: 3px; background: var(--tx); margin: 14px 0 24px;"></div>
+
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 12px;">{{ P.table }}</div>
+        <div style="border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; background: var(--sf2); font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sub);">
+            <sc-for list="{{ tableCols }}" as="col" hint-placeholder-count="3"><div style="padding: 11px 16px;">{{ col.x }}</div></sc-for>
+          </div>
+          <sc-for list="{{ tableRows }}" as="row" hint-placeholder-count="3">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; border-top: 1px solid var(--bd); font-size: 13.5px; align-items: center;" style-hover="background: var(--sf);">
+              <div style="padding: 12px 16px; font-weight: 600;">{{ row.a }}</div>
+              <div style="padding: 12px 16px; color: var(--sub); font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;">{{ row.b }}</div>
+              <div style="padding: 12px 16px;"><span style="padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; background: {{ row.badgeBg }}; color: {{ row.badgeC }};">{{ row.badge }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 26px;">
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); padding: 14px 16px 6px;">{{ P.list }}</div>
+            <sc-for list="{{ listRows }}" as="li" hint-placeholder-count="4"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--bd); font-size: 13.5px;" style-hover="background: var(--bg);"><span>{{ li.l }}</span><span style="color: var(--sub);">›</span></div></sc-for>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.chip }}</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <sc-for list="{{ chipTags }}" as="ct" hint-placeholder-count="4"><span style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: {{ ct.bg }}; color: {{ ct.c }};">{{ ct.l }}<span style="opacity: 0.6; font-size: 12px;">✕</span></span></sc-for>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); padding: 16px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sub); margin-bottom: 14px;">{{ P.avatar }}</div>
+            <div style="display: flex; align-items: center;">
+              <sc-for list="{{ avatars }}" as="av" hint-placeholder-count="4"><div style="width: 42px; height: 42px; margin-left: {{ av.ml }}; border-radius: 50%; background: {{ av.bg }}; color: {{ av.fg }}; border: 2.5px solid var(--sf); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; font-family: var(--hf); position: relative;">{{ av.l }}<span style="display: {{ av.dotShow }}; position: absolute; bottom: 1px; right: 1px; width: 11px; height: 11px; border-radius: 50%; background: #2AAE62; border: 2px solid var(--sf);"></span></div></sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TYPEFACES ============ -->
+      <section data-screen-label="Typefaces">
+        <div id="sec-fonts" style="scroll-margin-top: 120px;"></div>
+        <div style="display: flex; align-items: center; gap: 14px; margin: 68px 0 0;">
+          <div style="width: 42px; height: 42px; flex: none; background: var(--ac); color: var(--oac); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border-radius: var(--rs); font-family: var(--hf);">{{ gm.fonts.num }}</div>
+          <div style="flex: 1;"><div style="font-size: 23px; font-weight: 800; font-family: var(--hf); text-transform: var(--tt);">{{ gm.fonts.t }}</div><div style="display: {{ end }}; font-size: 13px; color: var(--sub);">{{ gm.fonts.en }}</div></div>
+        </div>
+        <div style="height: 3px; background: var(--ac); margin: 14px 0 24px;"></div>
+        <div style="border: 2px solid var(--tx); border-radius: var(--r); background: var(--sf); overflow: hidden;">
+          <sc-for list="{{ fontRows }}" as="f" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 24px; padding: 20px 24px; border-bottom: 1px solid var(--bd); flex-wrap: wrap;"><div style="font-size: 34px; font-weight: 800; font-family: var(--hf); min-width: 210px; line-height: 1.2;">{{ f.s }}</div><div style="flex: 1; min-width: 200px;"><div style="font-weight: 800; font-size: 16px;">{{ f.f }}</div><div style="font-size: 12.5px; color: var(--sub); margin-top: 2px;">{{ f.r }}</div></div></div>
+          </sc-for>
+          <div style="padding: 17px 24px; background: var(--bg); font-size: 13px; line-height: 1.7; color: var(--sub);">{{ t.fnote }}</div>
+        </div>
+      </section>
+
+      <div style="margin-top: 64px; border-top: 3px solid var(--tx); padding-top: 16px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--sub); font-weight: 600;">
+        <div>{{ t.footL }}</div>
+        <div>{{ t.name }} · {{ idxLabel }}</div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;showEnglish&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Display&quot; },
+  &quot;startDark&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Display&quot; },
+  &quot;startLibrary&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;tokyo&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;tokyo&quot;, &quot;yield&quot;, &quot;material&quot;, &quot;apple&quot;, &quot;fluent&quot;, &quot;ant&quot;, &quot;carbon&quot;, &quot;polaris&quot;, &quot;atlassian&quot;, &quot;govuk&quot;, &quot;bootstrap&quot;, &quot;tailwind&quot;, &quot;line&quot;, &quot;swiss&quot;, &quot;persona3&quot;, &quot;persona5&quot;], &quot;section&quot;: &quot;Display&quot; }
+}">
+const NOTO_JP = "'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Helvetica Neue', sans-serif";
+const DARK_STD = { bg: '#111214', surface: '#1A1C1F', text: '#F0F1F2', sub: '#9AA0A6', border: '#2E3237' };
+
+// Primitive names — technical, shared across all languages (developers use these in English)
+const PRIM = { color: 'Color', typography: 'Typography', spacing: 'Spacing', radius: 'Radius', shadow: 'Shadow', breakpoints: 'Breakpoints', motion: 'Motion', zindex: 'Z-index', box: 'Box', stack: 'Stack', grid: 'Grid', container: 'Container', divider: 'Divider', text: 'Text', heading: 'Heading', label: 'Label', caption: 'Caption', link: 'Link', button: 'Button', iconButton: 'IconButton', menu: 'Menu', field: 'Field', input: 'Input', textarea: 'Textarea', select: 'Select', checkbox: 'Checkbox', radio: 'RadioGroup', switch: 'Switch', card: 'Card', dialog: 'Dialog', drawer: 'Drawer', popover: 'Popover', tooltip: 'Tooltip', accordion: 'Accordion', tabs: 'Tabs', sidebarNav: 'SidebarNav', navItem: 'NavItem', breadcrumbs: 'Breadcrumbs', pagination: 'Pagination', alert: 'Alert', toast: 'Toast', badge: 'Badge', spinner: 'Spinner', skeleton: 'Skeleton', emptyState: 'EmptyState', table: 'Table', list: 'List', chip: 'Tag / Chip', avatar: 'Avatar' };
+
+const GROUP_ORDER = ['bento', 'foundations', 'layout', 'text', 'actions', 'forms', 'surfaces', 'nav', 'feedback', 'data', 'fonts'];
+const GROUP_ID = { bento: 'sec-bento', foundations: 'sec-foundations', layout: 'sec-layout', text: 'sec-text', actions: 'sec-actions', forms: 'sec-forms', surfaces: 'sec-surfaces', nav: 'sec-nav', feedback: 'sec-feedback', data: 'sec-data', fonts: 'sec-fonts' };
+
+const LANG = {
+  en: {
+    mode: ['Light', 'Dark'], viewing: 'Now viewing', contents: 'Contents',
+    kbd: 'Tip — press ← and → to move between libraries, or use the shelf above.',
+    bentoNote: 'six layouts assembled from this library’s primitives',
+    motionNote: 'Tap to play — spring easing, 420ms', container: 'Centered · max-width', divider: 'or',
+    dialogTitle: 'Confirm', tooltip: 'More info', popover: 'Quick actions', toast: 'Changes saved',
+    home: 'Home', empty: ['No items yet', 'Add your first item to see it here.'],
+    groups: { bento: ['Sample layouts', 'Bento compositions'], foundations: ['Foundations', 'Tokens & primitives'], layout: ['Layout', 'Structure'], text: ['Text', 'Typographic elements'], actions: ['Actions', 'Buttons & menus'], forms: ['Forms', 'Inputs & controls'], surfaces: ['Surfaces', 'Containers & overlays'], nav: ['Navigation', 'Wayfinding'], feedback: ['Feedback', 'Status & system'], data: ['Data', 'Records & display'], fonts: ['Typefaces', 'Set in this library'] }
+  },
+  ja: {
+    mode: ['ライト', 'ダーク'], viewing: '表示中', contents: '目次',
+    kbd: 'ヒント — ← → キーでライブラリを切り替え、または上のシェルフから選択できます。',
+    bentoNote: 'このライブラリのプリミティブで組んだ6つの作例',
+    motionNote: 'タップで再生 — スプリング, 420ms', container: '中央寄せ · 最大幅', divider: 'または',
+    dialogTitle: '確認', tooltip: '詳細', popover: 'クイック操作', toast: '変更を保存しました',
+    home: 'ホーム', empty: ['まだ項目がありません', '最初の項目を追加すると、ここに表示されます。'],
+    groups: { bento: ['レイアウト作例', 'Bento'], foundations: ['基盤', 'Foundations'], layout: ['レイアウト', 'Layout'], text: ['テキスト', 'Text'], actions: ['アクション', 'Actions'], forms: ['フォーム', 'Forms'], surfaces: ['サーフェス', 'Surfaces'], nav: ['ナビゲーション', 'Navigation'], feedback: ['フィードバック', 'Feedback'], data: ['データ', 'Data'], fonts: ['使用書体', 'Typefaces'] }
+  },
+  zh: {
+    mode: ['浅色', '深色'], viewing: '当前', contents: '目录',
+    kbd: '提示 — 使用 ← → 键切换库，或点击上方标签。',
+    bentoNote: '由本库基础组件拼装的六个示例',
+    motionNote: '点击播放 — 弹性缓动, 420ms', container: '居中 · 最大宽度', divider: '或',
+    dialogTitle: '确认', tooltip: '更多信息', popover: '快捷操作', toast: '更改已保存',
+    home: '首页', empty: ['暂无内容', '添加第一个项目后将在此显示。'],
+    groups: { bento: ['布局示例', 'Bento'], foundations: ['基础', 'Foundations'], layout: ['布局', 'Layout'], text: ['文本', 'Text'], actions: ['操作', 'Actions'], forms: ['表单', 'Forms'], surfaces: ['容器', 'Surfaces'], nav: ['导航', 'Navigation'], feedback: ['反馈', 'Feedback'], data: ['数据', 'Data'], fonts: ['字体', 'Typefaces'] }
+  },
+  de: {
+    mode: ['Hell', 'Dunkel'], viewing: 'Ansicht', contents: 'Inhalt',
+    kbd: 'Tipp — mit ← und → zwischen Bibliotheken wechseln, oder oben wählen.',
+    bentoNote: 'sechs Layouts aus den Primitiven dieser Bibliothek',
+    motionNote: 'Zum Abspielen tippen — Feder, 420ms', container: 'Zentriert · max. Breite', divider: 'oder',
+    dialogTitle: 'Bestätigen', tooltip: 'Mehr Infos', popover: 'Schnellaktionen', toast: 'Änderungen gespeichert',
+    home: 'Start', empty: ['Noch keine Einträge', 'Fügen Sie den ersten Eintrag hinzu.'],
+    groups: { bento: ['Layout-Beispiele', 'Bento'], foundations: ['Grundlagen', 'Foundations'], layout: ['Layout', 'Layout'], text: ['Text', 'Text'], actions: ['Aktionen', 'Actions'], forms: ['Formulare', 'Forms'], surfaces: ['Flächen', 'Surfaces'], nav: ['Navigation', 'Navigation'], feedback: ['Rückmeldung', 'Feedback'], data: ['Daten', 'Data'], fonts: ['Schriften', 'Typefaces'] }
+  }
+};
+
+const THEMES = [
+{ id: 'tokyo', lang: 'ja', chip: '東京メトロ', mark: 'M', name: '東京メトロ', en: 'Tokyo Metro · Wayfinding Sign System',
+  kicker: 'Tokyo Metro · 案内サイン', title: '案内標識にもとづくコンポーネント集',
+  titleEn: 'A component library based on the Tokyo Metro wayfinding signage system — line colours, station numbering, and bilingual type, exactly as you would read it on the platform.',
+  headStack: NOTO_JP, bodyStack: NOTO_JP, r: 10, rSm: 6, rBtn: 8,
+  light: { bg: '#F2F2EF', surface: '#FFFFFF', text: '#1A1A1A', sub: '#6E6E68', border: '#DCDCD5', accent: '#0099D9', onAccent: '#FFFFFF' },
+  dark: Object.assign({}, DARK_STD, { accent: '#2FB6EC', onAccent: '#0B0C0E' }),
+  tags: ['日本語 · English', '9 路線カラー · line colours', '新ゴ · Frutiger'],
+  pal: [ { code: 'G', name: '銀座線', en: 'Ginza Line', hex: '#F39700' }, { code: 'M', name: '丸ノ内線', en: 'Marunouchi Line', hex: '#E60012' }, { code: 'H', name: '日比谷線', en: 'Hibiya Line', hex: '#9CAEB7' }, { code: 'T', name: '東西線', en: 'Tozai Line', hex: '#00A7DB' }, { code: 'C', name: '千代田線', en: 'Chiyoda Line', hex: '#009944' }, { code: 'Z', name: '半蔵門線', en: 'Hanzomon Line', hex: '#9B7CB6' } ],
+  type: [ { n: '表示 Display', s: 46, w: 900, x: '銀座' }, { n: '見出し Heading', s: 30, w: 700, x: 'のりかえ案内 Transfer' }, { n: '本文 Body', s: 16, w: 400, x: 'この駅では丸ノ内線と日比谷線にのりかえができます。' }, { n: '注記 Caption', s: 12.5, w: 400, x: 'Transfer here for the Marunouchi Line.' } ],
+  btnP: 'きっぷを買う', btnS: '経路を検索', btnG: '詳細を見る', btnD: '利用不可',
+  badges: [ { l: 'G 09', c: '#F39700', sub: '銀座 Ginza' }, { l: 'M 16', c: '#E60012', sub: '銀座 Ginza' }, { l: 'H 09', c: '#9CAEB7', sub: '銀座 Ginza' }, { l: 'Z 01', c: '#9B7CB6', sub: '渋谷 Shibuya' } ],
+  formLabel: '目的地 / Destination', formPh: '例：渋谷駅', formHelp: '駅名または駅番号を入力してください。 Enter a station name or number.',
+  formSel: '路線 / Line', opts: ['銀座線 Ginza Line', '丸ノ内線 Marunouchi Line', '日比谷線 Hibiya Line', '東西線 Tozai Line'],
+  tg: [ { l: '英語表示 English' }, { l: '遅延通知 Delay alerts' } ], check: '利用規約に同意する · Agree to terms', radios: ['ICカード · IC card', 'きっぷ · Paper ticket'],
+  cardKicker: 'G 09 · 銀座線', cardTitle: '銀座駅', cardSub: 'Ginza Station · のりかえ4路線',
+  cardBody: '丸ノ内線・日比谷線はのりかえです。銀座四丁目交差点方面へはA4出口をご利用ください。',
+  cardRows: [['のりかえ Transfer', 'M16 · H09'], ['終電 Last train', '00:14']], cardA1: '時刻表', cardA2: '構内図',
+  alerts: [ { c: '#009944', t: '平常運転', b: '全線平常どおり運転しています。 All lines operating normally.' }, { c: '#F39700', t: '遅延情報', b: '東西線は約10分の遅れが出ています。 Tozai Line delayed ~10 min.' }, { c: '#E60012', t: '運転見合わせ', b: '千代田線は運転を見合わせています。 Chiyoda Line suspended.' } ],
+  tabs: ['時刻表', '路線図', '運賃', '出口'],
+  fonts: [ { f: '新ゴ（モリサワ）', r: '和文標識 · Japanese signage', s: '案内標識' }, { f: 'Frutiger', r: '欧文標識 · Latin signage', s: 'Wayfinding' }, { f: 'Noto Sans JP', r: '本ページの代替書体 · Web substitute', s: 'コンポーネント' } ],
+  fnote: '実際の駅構内標識は主に「新ゴ」（和文）と「Frutiger」（欧文）で組まれています。本ページではウェブで利用可能な Noto Sans JP で代替しています。',
+  footL: '東京メトロ 案内サインシステム · コンポーネント集' },
+
+{ id: 'yield', lang: 'en', chip: 'Yield', mark: 'Y', name: 'Yield', en: 'paywithyield.com · AR & Credit Engine',
+  kicker: 'Yield · AI-Powered AR & Credit Engine', title: 'Components for your entire credit cycle',
+  titleEn: 'Decide · Collect · Finance · Self-Fund. A component library for the AI-powered AR & credit engine — built to strengthen balance sheets.',
+  headStack: "'Space Grotesk', 'Instrument Sans', sans-serif", bodyStack: "'Instrument Sans', 'Helvetica Neue', sans-serif", r: 14, rSm: 8, rBtn: 999,
+  light: { bg: '#F3F6F0', surface: '#FFFFFF', text: '#0B1D16', sub: '#5C6B62', border: '#DCE3D8', accent: '#0B1D16', onAccent: '#C7F04A' },
+  dark: { bg: '#08130E', surface: '#0E1D15', text: '#EDF5E8', sub: '#8FA396', border: '#1F3328', accent: '#C7F04A', onAccent: '#0B1D16' },
+  tags: ['English', 'Fintech · B2B credit', 'Space Grotesk · Instrument Sans'],
+  pal: [ { code: '01', name: 'Ledger', en: 'Deep green-black', hex: '#0B1D16' }, { code: '02', name: 'Yield Lime', en: 'Primary signal', hex: '#C7F04A' }, { code: '03', name: 'Growth', en: 'Approved / paid', hex: '#1F7A4D' }, { code: '04', name: 'Paper', en: 'Background', hex: '#F3F6F0' }, { code: '05', name: 'Risk', en: 'Overdue / declined', hex: '#E8503A' }, { code: '06', name: 'Signal', en: 'Information', hex: '#2F6BFF' } ],
+  type: [ { n: 'Display', s: 48, w: 700, x: '₱ 2,400,000' }, { n: 'Headline', s: 30, w: 700, x: 'Extend terms with confidence.' }, { n: 'Body', s: 16, w: 400, x: 'Fast, data-driven credit decisions, typically ready in under 24 hours.' }, { n: 'Caption', s: 12.5, w: 600, x: 'RECOMMENDED LIMIT · RISK 82' } ],
+  btnP: 'Approve credit', btnS: 'Adjust limit', btnG: 'View report', btnD: 'Unavailable',
+  badges: [ { l: 'NET 30', c: '#1F7A4D', sub: 'Terms' }, { l: 'NET 60', c: '#2F6BFF', sub: 'Terms' }, { l: 'RISK 82', c: '#C79A2A', sub: 'Score' }, { l: 'PAID', c: '#1F7A4D', sub: '₱85,000' } ],
+  formLabel: 'Buyer name', formPh: 'e.g. Element Steel', formHelp: 'Credit decisions are typically ready in under 24 hours.',
+  formSel: 'Payment terms', opts: ['Net 30 days', 'Net 60 days', 'Net 90 days', 'Installments · 2–6 months'],
+  tg: [ { l: 'AI collections agent' }, { l: 'Auto-send statements' } ], check: 'Transfer 100% of credit risk to Yield', radios: ['Pay in full, later', 'Split into installments'],
+  cardKicker: 'Decide · Credit', cardTitle: 'Element Steel', cardSub: 'Buyer · Requesting Net 60 terms',
+  cardBody: 'Fast, data-driven credit decision. Protect margins, reduce risk, and strategically expand limits for proven buyers.',
+  cardRows: [['Recommended limit', '₱ 2,400,000'], ['Risk score', '82 / 100']], cardA1: 'Approve', cardA2: 'Adjust',
+  alerts: [ { c: '#1F7A4D', t: 'Invoice paid', b: 'Invoice #4821 settled — ₱85,000 received from KBV Incorporated.' }, { c: '#C79A2A', t: 'Promise-to-pay due', b: 'KBV committed to pay Friday, Jun 19. Follow-up scheduled.' }, { c: '#E8503A', t: 'Credit limit exceeded', b: 'Order OD-20265CE exceeds the buyer’s available line.' } ],
+  tabs: ['Decide', 'Collect', 'Finance', 'Self-Fund'],
+  fonts: [ { f: 'Space Grotesk', r: 'Headlines & numerals', s: 'Yield ₱82' }, { f: 'Instrument Sans', r: 'Body & UI text', s: 'AR velocity' } ],
+  fnote: 'Set in Space Grotesk for headlines and figures, with Instrument Sans for body and interface text — a clean grotesque pairing for a credit engine.',
+  footL: 'Yield · paywithyield.com' },
+
+{ id: 'material', lang: 'en', chip: 'Material 3', mark: 'M3', name: 'Material Design 3', en: 'Google · Material You',
+  kicker: 'Google · Material You', title: 'Components built on Material 3',
+  titleEn: 'Dynamic color, tonal palettes, and expressive shape — the baseline Material 3 component set.',
+  headStack: "'Roboto', sans-serif", bodyStack: "'Roboto', sans-serif", r: 22, rSm: 12, rBtn: 999,
+  light: { bg: '#FEF7FF', surface: '#FFFFFF', text: '#1D1B20', sub: '#79747E', border: '#E7E0EC', accent: '#6750A4', onAccent: '#FFFFFF' },
+  dark: { bg: '#141218', surface: '#211F26', text: '#E6E0E9', sub: '#938F99', border: '#36343B', accent: '#D0BCFF', onAccent: '#381E72' },
+  tags: ['English', 'Dynamic color', 'Roboto'],
+  pal: [ { code: 'P', name: 'Primary', en: 'primary40', hex: '#6750A4' }, { code: 'PC', name: 'Primary Container', en: 'primary90', hex: '#EADDFF' }, { code: 'S', name: 'Secondary', en: 'secondary40', hex: '#625B71' }, { code: 'T', name: 'Tertiary', en: 'tertiary40', hex: '#7D5260' }, { code: 'E', name: 'Error', en: 'error40', hex: '#B3261E' }, { code: 'SF', name: 'Surface', en: 'neutral98', hex: '#FEF7FF' } ],
+  type: [ { n: 'Display Large', s: 48, w: 400, x: 'Material You' }, { n: 'Headline Medium', s: 28, w: 400, x: 'Personal, adaptive color' }, { n: 'Body Large', s: 16, w: 400, x: 'Dynamic color derives tonal palettes from a user’s wallpaper.' }, { n: 'Label Small', s: 12, w: 500, x: 'LABEL · 11PX MEDIUM' } ],
+  btnP: 'Filled', btnS: 'Tonal', btnG: 'Outlined', btnD: 'Disabled',
+  badges: [ { l: 'NEW', c: '#6750A4', sub: 'Badge' }, { l: '3', c: '#B3261E', sub: 'Notification' }, { l: 'BETA', c: '#7D5260', sub: 'Channel' }, { l: 'SYNCED', c: '#625B71', sub: 'Status' } ],
+  formLabel: 'Label text', formPh: 'Input text', formHelp: 'Supporting text — helps users understand the field.',
+  formSel: 'Menu', opts: ['Option one', 'Option two', 'Option three', 'Option four'],
+  tg: [ { l: 'Dynamic color' }, { l: 'Dark theme' } ], check: 'Remember this device', radios: ['Comfortable density', 'Compact density'],
+  cardKicker: 'Elevated card', cardTitle: 'Glance', cardSub: 'Updated just now',
+  cardBody: 'Cards contain content and actions about a single subject. Elevation and shape express hierarchy.',
+  cardRows: [['State layer', 'Hover · 8%'], ['Shape', 'Corner · 12dp']], cardA1: 'Action', cardA2: 'Dismiss',
+  alerts: [ { c: '#1B873B', t: 'Success', b: 'Your changes were saved to the cloud.' }, { c: '#B26A00', t: 'Warning', b: 'Storage is almost full — 92% used.' }, { c: '#B3261E', t: 'Error', b: 'Couldn’t sync. Check your connection and try again.' } ],
+  tabs: ['Overview', 'Specs', 'Guidelines', 'A11y'],
+  fonts: [ { f: 'Roboto', r: 'Default type scale · Display → Label', s: 'Material' }, { f: 'Roboto Flex', r: 'Variable axes for expressive type', s: 'Adaptive' } ],
+  fnote: 'Material 3’s baseline type scale is set in Roboto, with Roboto Flex providing variable weight, width, and grade axes.',
+  footL: 'Material Design 3 · m3.material.io' },
+
+{ id: 'apple', lang: 'en', chip: 'Apple HIG', mark: 'A', name: 'Human Interface', en: 'Apple · Human Interface Guidelines',
+  kicker: 'Apple · Human Interface Guidelines', title: 'Components with clarity, deference, depth',
+  titleEn: 'System colors, SF-style type, and familiar controls in the spirit of the Human Interface Guidelines.',
+  headStack: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif", bodyStack: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif", r: 14, rSm: 10, rBtn: 12,
+  light: { bg: '#F2F2F7', surface: '#FFFFFF', text: '#1C1C1E', sub: '#8E8E93', border: '#E5E5EA', accent: '#007AFF', onAccent: '#FFFFFF' },
+  dark: { bg: '#000000', surface: '#1C1C1E', text: '#F2F2F7', sub: '#98989D', border: '#38383A', accent: '#0A84FF', onAccent: '#FFFFFF' },
+  tags: ['English', 'iOS · macOS', 'SF Pro'],
+  pal: [ { code: 'BL', name: 'Blue', en: 'systemBlue', hex: '#007AFF' }, { code: 'GN', name: 'Green', en: 'systemGreen', hex: '#34C759' }, { code: 'OR', name: 'Orange', en: 'systemOrange', hex: '#FF9500' }, { code: 'RD', name: 'Red', en: 'systemRed', hex: '#FF3B30' }, { code: 'PU', name: 'Purple', en: 'systemPurple', hex: '#AF52DE' }, { code: 'GY', name: 'Gray', en: 'systemGray', hex: '#8E8E93' } ],
+  type: [ { n: 'Large Title', s: 42, w: 700, x: 'Settings' }, { n: 'Title 2', s: 26, w: 700, x: 'Screen Time' }, { n: 'Body', s: 17, w: 400, x: 'Choose what to share with the apps you use.' }, { n: 'Footnote', s: 13, w: 400, x: 'Your data is encrypted on device.' } ],
+  btnP: 'Continue', btnS: 'Not Now', btnG: 'Learn More', btnD: 'Unavailable',
+  badges: [ { l: '5', c: '#FF3B30', sub: 'Badge' }, { l: 'NEW', c: '#007AFF', sub: 'App Store' }, { l: 'LIVE', c: '#34C759', sub: 'Activity' }, { l: 'FOCUS', c: '#AF52DE', sub: 'DND' } ],
+  formLabel: 'Name', formPh: 'Required', formHelp: 'This appears on your shared devices.',
+  formSel: 'Appearance', opts: ['Automatic', 'Light', 'Dark', 'Tinted'],
+  tg: [ { l: 'Wi-Fi' }, { l: 'Bluetooth' } ], check: 'Share analytics with developers', radios: ['Standard display', 'Zoomed display'],
+  cardKicker: 'Focus', cardTitle: 'Do Not Disturb', cardSub: 'Scheduled · 22:00 – 07:00',
+  cardBody: 'Silence notifications while allowing calls from Favorites. Focus status is shared with people who message you.',
+  cardRows: [['Allowed people', 'Favorites · 6'], ['Allowed apps', 'Calendar, Home']], cardA1: 'Turn On', cardA2: 'Options',
+  alerts: [ { c: '#34C759', t: 'Backup complete', b: 'Your iPhone was backed up to iCloud at 02:14.' }, { c: '#FF9500', t: 'Low battery', b: '20% battery remaining. Low Power Mode is available.' }, { c: '#FF3B30', t: 'Storage full', b: 'iCloud storage is full. Photos are no longer backing up.' } ],
+  tabs: ['Today', 'Updates', 'Search', 'Account'],
+  fonts: [ { f: 'SF Pro Display', r: 'Large titles (20pt and up)', s: 'Cupertino' }, { f: 'SF Pro Text', r: 'Body & captions (below 20pt)', s: 'Interface' }, { f: 'SF Mono', r: 'Code & tabular figures', s: '02:14:36' } ],
+  fnote: 'The system family is San Francisco — SF Pro Display for large sizes, SF Pro Text below 20pt. This page falls back to the system stack (-apple-system).',
+  footL: 'Human Interface Guidelines · developer.apple.com' },
+
+{ id: 'fluent', lang: 'en', chip: 'Fluent 2', mark: 'F', name: 'Fluent 2', en: 'Microsoft · Fluent Design System',
+  kicker: 'Microsoft · Fluent Design System', title: 'Components at home on every surface',
+  titleEn: 'Fluent 2 brings coherence across Windows, web, and Teams — quiet neutrals with a confident brand blue.',
+  headStack: "'Segoe UI', 'Segoe UI Variable', -apple-system, sans-serif", bodyStack: "'Segoe UI', 'Segoe UI Variable', -apple-system, sans-serif", r: 8, rSm: 4, rBtn: 4,
+  light: { bg: '#FAF9F8', surface: '#FFFFFF', text: '#242424', sub: '#616161', border: '#E0E0E0', accent: '#0F6CBD', onAccent: '#FFFFFF' },
+  dark: { bg: '#141414', surface: '#1F1F1F', text: '#F5F5F5', sub: '#9E9E9E', border: '#333333', accent: '#479EF5', onAccent: '#0A2E4A' },
+  tags: ['English', 'Windows · Teams · Web', 'Segoe UI Variable'],
+  pal: [ { code: 'B80', name: 'Brand 80', en: 'Primary', hex: '#0F6CBD' }, { code: 'B60', name: 'Brand 60', en: 'Pressed', hex: '#0C3B5E' }, { code: 'GN', name: 'Green', en: 'Success', hex: '#107C10' }, { code: 'YL', name: 'Marigold', en: 'Warning', hex: '#EAA300' }, { code: 'RD', name: 'Cranberry', en: 'Danger', hex: '#C50F1F' }, { code: 'GY', name: 'Grey 38', en: 'Neutral', hex: '#616161' } ],
+  type: [ { n: 'Display', s: 44, w: 700, x: 'Fluent 2' }, { n: 'Subtitle 1', s: 26, w: 600, x: 'Coherent across canvases' }, { n: 'Body 1', s: 15, w: 400, x: 'One design system for Windows, web, and mobile experiences.' }, { n: 'Caption 1', s: 12, w: 400, x: 'Updated 2 minutes ago' } ],
+  btnP: 'Primary', btnS: 'Standard', btnG: 'Subtle', btnD: 'Disabled',
+  badges: [ { l: 'ONLINE', c: '#107C10', sub: 'Presence' }, { l: 'AWAY', c: '#EAA300', sub: 'Presence' }, { l: 'DND', c: '#C50F1F', sub: 'Presence' }, { l: '12', c: '#0F6CBD', sub: 'Activity' } ],
+  formLabel: 'Display name', formPh: 'Enter your name', formHelp: 'This is how you’ll appear in meetings.',
+  formSel: 'Status duration', opts: ['1 hour', 'Today', 'This week', 'Custom'],
+  tg: [ { l: 'Blur my background' }, { l: 'Spatial audio' } ], check: 'Register Teams as the chat app for Office', radios: ['Compact density', 'Comfortable density'],
+  cardKicker: 'Meeting · 10:30', cardTitle: 'Design crit — wayfinding', cardSub: 'Microsoft Teams · Weekly',
+  cardBody: 'Review the updated component set with the design systems guild. Agenda and files are attached in the chat.',
+  cardRows: [['Organizer', 'Aiko Tanaka'], ['Attendees', '14 accepted']], cardA1: 'Join', cardA2: 'Chat',
+  alerts: [ { c: '#107C10', t: 'Saved', b: 'Your settings were synced to all devices.' }, { c: '#EAA300', t: 'Certificate expiring', b: 'Your sign-in certificate expires in 14 days.' }, { c: '#C50F1F', t: 'Connection lost', b: 'Reconnecting to the meeting…' } ],
+  tabs: ['Activity', 'Chat', 'Teams', 'Calendar'],
+  fonts: [ { f: 'Segoe UI Variable', r: 'Windows & Fluent 2 UI type', s: 'Fluent' }, { f: 'Segoe UI', r: 'Fallback across web surfaces', s: 'Windows' } ],
+  fnote: 'Fluent 2 is set in Segoe UI Variable, with optical axes for small text and display. This page uses the Segoe UI stack where available.',
+  footL: 'Fluent 2 · fluent2.microsoft.design' },
+
+{ id: 'ant', lang: 'zh', chip: 'Ant Design 蚂蚁', mark: '蚂', name: '蚂蚁设计体系', en: 'Ant Design · Enterprise UI',
+  kicker: 'Ant Design · 企业级产品设计体系', title: '助力设计者的企业级组件库',
+  titleEn: 'An enterprise-class UI design language and component library — 确定性、自然、意义感、生长性。',
+  headStack: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif", bodyStack: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif", r: 8, rSm: 6, rBtn: 6,
+  light: { bg: '#F5F5F5', surface: '#FFFFFF', text: '#1F1F1F', sub: '#8C8C8C', border: '#D9D9D9', accent: '#1677FF', onAccent: '#FFFFFF' },
+  dark: Object.assign({}, DARK_STD, { accent: '#4096FF', onAccent: '#0B0C0E' }),
+  tags: ['中文 · Chinese', '企业级 Enterprise', 'PingFang SC · Noto Sans SC'],
+  pal: [ { code: '蓝', name: '拂晓蓝', en: 'Daybreak Blue', hex: '#1677FF' }, { code: '红', name: '薄暮', en: 'Dust Red', hex: '#F5222D' }, { code: '金', name: '日暮', en: 'Sunset', hex: '#FAAD14' }, { code: '绿', name: '极光绿', en: 'Polar Green', hex: '#52C41A' }, { code: '紫', name: '酱紫', en: 'Golden Purple', hex: '#722ED1' }, { code: '青', name: '明青', en: 'Cyan', hex: '#13C2C2' } ],
+  type: [ { n: '标题 H1', s: 40, w: 700, x: '蚂蚁设计' }, { n: '标题 H3', s: 26, w: 600, x: '确定性与自然' }, { n: '正文 Body', s: 15, w: 400, x: '企业级产品是一个庞大且复杂的体系。' }, { n: '辅助 Caption', s: 12, w: 400, x: '最后更新于 2 分钟前' } ],
+  btnP: '主按钮', btnS: '次按钮', btnG: '文本按钮', btnD: '已禁用',
+  badges: [ { l: '成功', c: '#52C41A', sub: 'success' }, { l: '进行中', c: '#1677FF', sub: 'processing' }, { l: '警告', c: '#FAAD14', sub: 'warning' }, { l: '99+', c: '#F5222D', sub: '未读' } ],
+  formLabel: '用户名', formPh: '请输入用户名', formHelp: '支持中文、英文和数字。',
+  formSel: '所在城市', opts: ['杭州', '北京', '上海', '深圳'],
+  tg: [ { l: '消息通知' }, { l: '自动更新' } ], check: '我已阅读并同意服务协议', radios: ['个人账户', '企业账户'],
+  cardKicker: '订单 · 2026-07-08', cardTitle: '订单详情', cardSub: '订单号 20260708-1032',
+  cardBody: '该订单已通过风控审核，正在等待仓库发货。预计 48 小时内送达。',
+  cardRows: [['收货人', '王小明'], ['金额', '¥ 2,400.00']], cardA1: '查看物流', cardA2: '取消订单',
+  alerts: [ { c: '#52C41A', t: '成功', b: '操作成功完成，数据已保存。' }, { c: '#FAAD14', t: '警告', b: '当前配置即将过期，请及时更新。' }, { c: '#F5222D', t: '错误', b: '服务器连接失败，请稍后重试。' } ],
+  tabs: ['概览', '组件', '资源', '关于'],
+  fonts: [ { f: 'PingFang SC', r: '中文界面字体 · Chinese UI', s: '蚂蚁设计' }, { f: 'Noto Sans SC', r: '本页替代字体 · Web substitute', s: '组件库' }, { f: 'SFMono', r: '代码与数字 · Code & figures', s: '¥2,400' } ],
+  fnote: 'Ant Design 的默认字体族优先使用系统中文字体（PingFang SC、Microsoft YaHei）。本页使用 Noto Sans SC 作为网页替代。',
+  footL: '蚂蚁设计体系 Ant Design · ant.design' },
+
+{ id: 'carbon', lang: 'en', chip: 'Carbon', mark: 'C', name: 'Carbon', en: 'IBM · Carbon Design System',
+  kicker: 'IBM · Carbon Design System', title: 'Components with the precision of Plex',
+  titleEn: 'IBM’s open-source design system — a sharp 2x grid, zero corner radius, and IBM Plex throughout.',
+  headStack: "'IBM Plex Sans', 'Helvetica Neue', sans-serif", bodyStack: "'IBM Plex Sans', 'Helvetica Neue', sans-serif", r: 0, rSm: 0, rBtn: 0,
+  light: { bg: '#F4F4F4', surface: '#FFFFFF', text: '#161616', sub: '#525252', border: '#E0E0E0', accent: '#0F62FE', onAccent: '#FFFFFF' },
+  dark: { bg: '#161616', surface: '#262626', text: '#F4F4F4', sub: '#A8A8A8', border: '#393939', accent: '#78A9FF', onAccent: '#001141' },
+  tags: ['English', '2x grid · sharp corners', 'IBM Plex'],
+  pal: [ { code: 'B60', name: 'Blue 60', en: 'interactive-01', hex: '#0F62FE' }, { code: 'G100', name: 'Gray 100', en: 'text-01', hex: '#161616' }, { code: 'G10', name: 'Gray 10', en: 'ui-background', hex: '#F4F4F4' }, { code: 'R60', name: 'Red 60', en: 'support-error', hex: '#DA1E28' }, { code: 'GN50', name: 'Green 50', en: 'support-success', hex: '#24A148' }, { code: 'P60', name: 'Purple 60', en: 'support-info', hex: '#8A3FFC' } ],
+  type: [ { n: 'Display 04', s: 46, w: 300, x: 'Carbon' }, { n: 'Heading 04', s: 28, w: 400, x: 'Productive by default' }, { n: 'Body 01', s: 14, w: 400, x: 'Carbon is IBM’s open-source design system for products and experiences.' }, { n: 'Label 01', s: 12, w: 400, x: 'IBM.COM/DESIGN — LABEL 01' } ],
+  btnP: 'Primary', btnS: 'Secondary', btnG: 'Tertiary', btnD: 'Disabled',
+  badges: [ { l: 'ACTIVE', c: '#24A148', sub: 'Deploy' }, { l: 'QUEUED', c: '#8A3FFC', sub: 'Pipeline' }, { l: 'FAILED', c: '#DA1E28', sub: 'Build #482' }, { l: 'V2.4', c: '#0F62FE', sub: 'Release' } ],
+  formLabel: 'Data set name', formPh: 'e.g. churn-q3-2026', formHelp: 'Lowercase letters, numbers, and hyphens only.',
+  formSel: 'Region', opts: ['us-east-1', 'eu-de-2', 'jp-tok-1', 'au-syd-1'],
+  tg: [ { l: 'Auto-scaling' }, { l: 'Audit logging' } ], check: 'Encrypt volumes at rest', radios: ['Productive motion', 'Expressive motion'],
+  cardKicker: 'Data set · 2 min ago', cardTitle: 'churn-q3-2026', cardSub: 'Watson Studio · 1.2M rows',
+  cardBody: 'Training data for the Q3 churn model. Schema validated; 3 columns flagged for high null rates.',
+  cardRows: [['Rows', '1,204,882'], ['Storage', 'COS · 4.2 GB']], cardA1: 'Open', cardA2: 'Lineage',
+  alerts: [ { c: '#24A148', t: 'Success', b: 'Pipeline run #483 completed in 4m 12s.' }, { c: '#F1C21B', t: 'Warning', b: 'High null rate detected in column last_login.' }, { c: '#DA1E28', t: 'Error', b: 'Build #482 failed — exit code 1 at step deploy.' } ],
+  tabs: ['Dashboard', 'Catalog', 'Jobs', 'Access'],
+  fonts: [ { f: 'IBM Plex Sans', r: 'UI & product text', s: 'Carbon' }, { f: 'IBM Plex Mono', r: 'Code, data & tokens', s: 'gray-100' } ],
+  fnote: 'Carbon is set entirely in the IBM Plex superfamily — Plex Sans for interface text and Plex Mono for code and data. Open source, like the system itself.',
+  footL: 'Carbon Design System · carbondesignsystem.com' },
+
+{ id: 'polaris', lang: 'en', chip: 'Polaris', mark: 'P', name: 'Polaris', en: 'Shopify · Admin Design System',
+  kicker: 'Shopify · Polaris', title: 'Components for the merchant admin',
+  titleEn: 'The design system behind the Shopify admin — practical, commerce-first, and built for busy merchants.',
+  headStack: "'Inter', -apple-system, sans-serif", bodyStack: "'Inter', -apple-system, sans-serif", r: 12, rSm: 8, rBtn: 8,
+  light: { bg: '#F1F1F1', surface: '#FFFFFF', text: '#303030', sub: '#616161', border: '#E3E3E3', accent: '#1A1A1A', onAccent: '#FFFFFF' },
+  dark: Object.assign({}, DARK_STD, { accent: '#E3E3E3', onAccent: '#1A1A1A' }),
+  tags: ['English', 'Commerce · Admin', 'Inter'],
+  pal: [ { code: 'IN', name: 'Ink', en: 'Primary action', hex: '#1A1A1A' }, { code: 'GN', name: 'Success', en: 'Paid / fulfilled', hex: '#29845A' }, { code: 'YL', name: 'Attention', en: 'Pending', hex: '#B98900' }, { code: 'RD', name: 'Critical', en: 'Failed / overdue', hex: '#E51C00' }, { code: 'BL', name: 'Info', en: 'Highlight', hex: '#0094D5' }, { code: 'TL', name: 'Magic', en: 'Automations', hex: '#8051FF' } ],
+  type: [ { n: 'Heading XL', s: 40, w: 700, x: 'Orders' }, { n: 'Heading Md', s: 24, w: 650, x: 'Today’s performance' }, { n: 'Body Md', s: 14, w: 450, x: 'You have 12 orders to fulfill and 3 payments to capture.' }, { n: 'Body Sm', s: 12, w: 450, x: 'Last synced 2 minutes ago' } ],
+  btnP: 'Add product', btnS: 'Duplicate', btnG: 'View analytics', btnD: 'Disabled',
+  badges: [ { l: 'FULFILLED', c: '#29845A', sub: '#1032' }, { l: 'PENDING', c: '#B98900', sub: 'Payment' }, { l: 'REFUNDED', c: '#8A8A8A', sub: '#1029' }, { l: 'NEW', c: '#0094D5', sub: 'Customer' } ],
+  formLabel: 'Product title', formPh: 'Short sleeve t-shirt', formHelp: 'Give your product a short, clear title.',
+  formSel: 'Sales channel', opts: ['Online Store', 'Point of Sale', 'Shop app', 'Wholesale'],
+  tg: [ { l: 'Track quantity' }, { l: 'Charge tax' } ], check: 'This is a physical product', radios: ['Active', 'Draft'],
+  cardKicker: 'Order · 09:42', cardTitle: '#1032', cardSub: 'Aiko Tanaka · 2 items',
+  cardBody: 'Payment captured via Shopify Payments. Ready to fulfill from the Shibuya location.',
+  cardRows: [['Subtotal', '¥8,400'], ['Shipping', '¥550 · Yamato']], cardA1: 'Fulfill', cardA2: 'Print',
+  alerts: [ { c: '#29845A', t: 'Order fulfilled', b: 'Tracking number was sent to the customer.' }, { c: '#B98900', t: 'Inventory low', b: '“Short sleeve t-shirt / M” has 3 left in stock.' }, { c: '#E51C00', t: 'Payment failed', b: 'Order #1033 payment could not be captured.' } ],
+  tabs: ['Home', 'Orders', 'Products', 'Customers'],
+  fonts: [ { f: 'Inter', r: 'All admin UI text', s: 'Polaris' }, { f: 'SF Mono', r: 'Order numbers & code', s: '#1032' } ],
+  fnote: 'The Shopify admin is set in Inter across all sizes, leaning on its tall x-height for dense merchant tables and forms.',
+  footL: 'Polaris · polaris.shopify.com' },
+
+{ id: 'atlassian', lang: 'en', chip: 'Atlassian', mark: 'A', name: 'Atlassian', en: 'Atlassian Design · Jira, Confluence',
+  kicker: 'Atlassian Design System', title: 'Components for teams that ship',
+  titleEn: 'The system behind Jira and Confluence — pragmatic blues, dense information, and clear status at a glance.',
+  headStack: "-apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", bodyStack: "-apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", r: 8, rSm: 4, rBtn: 4,
+  light: { bg: '#F7F8F9', surface: '#FFFFFF', text: '#172B4D', sub: '#626F86', border: '#DFE1E6', accent: '#0052CC', onAccent: '#FFFFFF' },
+  dark: Object.assign({}, DARK_STD, { accent: '#579DFF', onAccent: '#0B1A33' }),
+  tags: ['English', 'Jira · Confluence', 'Charlie Sans'],
+  pal: [ { code: 'B', name: 'Blue', en: 'Brand & actions', hex: '#0052CC' }, { code: 'N', name: 'Neutral 800', en: 'Text', hex: '#172B4D' }, { code: 'G', name: 'Green', en: 'Done / success', hex: '#22A06B' }, { code: 'Y', name: 'Yellow', en: 'Moved / warning', hex: '#D97008' }, { code: 'R', name: 'Red', en: 'Blocked / error', hex: '#E34935' }, { code: 'P', name: 'Purple', en: 'New / discovery', hex: '#8270DB' } ],
+  type: [ { n: 'H900', s: 38, w: 600, x: 'Sprint 42' }, { n: 'H600', s: 24, w: 600, x: 'Board settings' }, { n: 'Body', s: 14, w: 400, x: 'Move work forward with statuses your whole team understands.' }, { n: 'Small', s: 11, w: 600, x: 'UPDATED 2 MIN AGO · PROJ-128' } ],
+  btnP: 'Create', btnS: 'Assign to me', btnG: 'Link issue', btnD: 'Disabled',
+  badges: [ { l: 'TO DO', c: '#626F86', sub: 'Backlog' }, { l: 'IN PROGRESS', c: '#0052CC', sub: 'Sprint 42' }, { l: 'DONE', c: '#22A06B', sub: 'Shipped' }, { l: 'BLOCKED', c: '#E34935', sub: 'Needs input' } ],
+  formLabel: 'Summary', formPh: 'What needs to be done?', formHelp: 'Try to keep summaries short and action-oriented.',
+  formSel: 'Issue type', opts: ['Story', 'Bug', 'Task', 'Epic'],
+  tg: [ { l: 'Sprint notifications' }, { l: 'Smart commits' } ], check: 'Add to current sprint', radios: ['Kanban board', 'Scrum board'],
+  cardKicker: 'PROJ-128 · Bug · High', cardTitle: 'Payment retries fail silently', cardSub: 'Reported by Aiko Tanaka',
+  cardBody: 'When the gateway times out, the retry job exits without logging. Affects roughly 2% of checkout sessions.',
+  cardRows: [['Assignee', 'K. Watanabe'], ['Sprint', 'Sprint 42']], cardA1: 'Start', cardA2: 'Watch',
+  alerts: [ { c: '#22A06B', t: 'Issue resolved', b: 'PROJ-127 was moved to Done by K. Watanabe.' }, { c: '#D97008', t: 'Sprint ending', b: 'Sprint 42 ends in 2 days with 5 issues open.' }, { c: '#E34935', t: 'Build failed', b: 'Pipeline main #291 failed on the test stage.' } ],
+  tabs: ['Backlog', 'Board', 'Reports', 'Releases'],
+  fonts: [ { f: 'Charlie Sans', r: 'Brand & marketing headlines', s: 'Atlassian' }, { f: 'System stack', r: 'Product UI (Jira, Confluence)', s: 'PROJ-128' } ],
+  fnote: 'Product interfaces use the native system stack for speed; Charlie Sans, Atlassian’s brand typeface, appears in marketing and headlines. This page uses the system stack.',
+  footL: 'Atlassian Design System · atlassian.design' },
+
+{ id: 'govuk', lang: 'en', chip: 'GOV.UK', mark: 'G', name: 'GOV.UK', en: 'UK Government Design System',
+  kicker: 'GOV.UK Design System', title: 'Components for services, not websites',
+  titleEn: 'Brutally clear, accessible by law, one thing per page — the design system of the UK government.',
+  headStack: "Arial, 'Helvetica Neue', sans-serif", bodyStack: "Arial, 'Helvetica Neue', sans-serif", r: 0, rSm: 0, rBtn: 0,
+  light: { bg: '#FFFFFF', surface: '#F3F2F1', text: '#0B0C0C', sub: '#505A5F', border: '#B1B4B6', accent: '#00703C', onAccent: '#FFFFFF' },
+  dark: Object.assign({}, DARK_STD, { accent: '#00A05A', onAccent: '#0B0C0C' }),
+  tags: ['English (UK)', 'WCAG 2.2 AA', 'GDS Transport'],
+  pal: [ { code: 'BK', name: 'Text black', en: '#0b0c0c', hex: '#0B0C0C' }, { code: 'BL', name: 'GOV.UK blue', en: 'Links & brand', hex: '#1D70B8' }, { code: 'GN', name: 'Button green', en: 'Start & submit', hex: '#00703C' }, { code: 'RD', name: 'Error red', en: 'Error states', hex: '#D4351C' }, { code: 'YL', name: 'Focus yellow', en: 'Keyboard focus', hex: '#FFDD00' }, { code: 'GY', name: 'Mid grey', en: 'Borders', hex: '#B1B4B6' } ],
+  type: [ { n: 'XL heading', s: 44, w: 700, x: 'Apply online' }, { n: 'L heading', s: 26, w: 700, x: 'Check your answers' }, { n: 'Body', s: 17, w: 400, x: 'You’ll need your National Insurance number and a photo ID.' }, { n: 'Hint text', s: 15, w: 400, x: 'For example, QQ 12 34 56 C' } ],
+  btnP: 'Start now', btnS: 'Save and continue', btnG: 'Cancel', btnD: 'Unavailable',
+  badges: [ { l: 'COMPLETED', c: '#00703C', sub: 'Task' }, { l: 'IN PROGRESS', c: '#1D70B8', sub: 'Task' }, { l: 'CANNOT START', c: '#505A5F', sub: 'Task' }, { l: 'OVERDUE', c: '#D4351C', sub: 'Payment' } ],
+  formLabel: 'National Insurance number', formPh: 'QQ 12 34 56 C', formHelp: 'It’s on your National Insurance card, payslip or P60.',
+  formSel: 'Where do you live?', opts: ['England', 'Scotland', 'Wales', 'Northern Ireland'],
+  tg: [ { l: 'Get email reminders' }, { l: 'Use my saved details' } ], check: 'I agree to the declaration', radios: ['Yes', 'No'],
+  cardKicker: 'DVLA · Driving licences', cardTitle: 'Apply for a provisional licence', cardSub: 'Takes around 10 minutes',
+  cardBody: 'You can apply online if you’re at least 15 years and 9 months old and can read a number plate from 20 metres.',
+  cardRows: [['Fee', '£34 by card'], ['Delivery', 'Within 1 week']], cardA1: 'Start now', cardA2: 'Eligibility',
+  alerts: [ { c: '#00703C', t: 'Application complete', b: 'Your reference number is HDJ2123F. We have sent you a confirmation email.' }, { c: '#1D70B8', t: 'Important', b: 'This service will be unavailable on Sunday 12 July from 02:00 to 04:00.' }, { c: '#D4351C', t: 'There is a problem', b: 'Enter a National Insurance number in the correct format.' } ],
+  tabs: ['Overview', 'Eligibility', 'How to apply', 'Contact'],
+  fonts: [ { f: 'GDS Transport', r: 'All text — from UK road signage', s: 'GOV.UK' }, { f: 'Arial', r: 'Fallback off gov.uk (used here)', s: 'Start now' } ],
+  fnote: 'GOV.UK is set in GDS Transport, adapted from the Transport typeface on British road signs. It may only be used on gov.uk domains, so this page falls back to Arial — exactly as the guidance prescribes.',
+  footL: 'GOV.UK Design System · design-system.service.gov.uk' },
+
+{ id: 'bootstrap', lang: 'en', chip: 'Bootstrap', mark: 'B', name: 'Bootstrap 5', en: 'The OG open-source toolkit',
+  kicker: 'Bootstrap · Build fast, responsive sites', title: 'The components everyone learned first',
+  titleEn: 'Primary, secondary, success, danger — the classic utility palette that shaped a decade of the web.',
+  headStack: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", bodyStack: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", r: 8, rSm: 6, rBtn: 6,
+  light: { bg: '#F8F9FA', surface: '#FFFFFF', text: '#212529', sub: '#6C757D', border: '#DEE2E6', accent: '#0D6EFD', onAccent: '#FFFFFF' },
+  dark: { bg: '#212529', surface: '#2B3035', text: '#F8F9FA', sub: '#ADB5BD', border: '#495057', accent: '#6EA8FE', onAccent: '#031633' },
+  tags: ['English', 'v5.3', 'System font stack'],
+  pal: [ { code: 'PRI', name: 'Primary', en: '$blue-500', hex: '#0D6EFD' }, { code: 'SEC', name: 'Secondary', en: '$gray-600', hex: '#6C757D' }, { code: 'SUC', name: 'Success', en: '$green-500', hex: '#198754' }, { code: 'DNG', name: 'Danger', en: '$red-500', hex: '#DC3545' }, { code: 'WRN', name: 'Warning', en: '$yellow-500', hex: '#FFC107' }, { code: 'INF', name: 'Info', en: '$cyan-500', hex: '#0DCAF0' } ],
+  type: [ { n: 'Display 3', s: 46, w: 300, x: 'Hello, world!' }, { n: 'h2', s: 30, w: 500, x: 'Quick start' }, { n: 'Body', s: 16, w: 400, x: 'Some quick example text to build on the card title.' }, { n: '.small', s: 13, w: 400, x: 'Last updated 3 mins ago' } ],
+  btnP: 'Primary', btnS: 'Secondary', btnG: 'Outline', btnD: 'Disabled',
+  badges: [ { l: 'NEW', c: '#0D6EFD', sub: '.badge' }, { l: '4', c: '#DC3545', sub: 'Unread' }, { l: 'SALE', c: '#198754', sub: 'Pill' }, { l: 'DRAFT', c: '#6C757D', sub: 'Post' } ],
+  formLabel: 'Email address', formPh: 'name@example.com', formHelp: 'We’ll never share your email with anyone else.',
+  formSel: 'Example select', opts: ['Open this menu', 'One', 'Two', 'Three'],
+  tg: [ { l: 'Check this switch' }, { l: 'Dark mode' } ], check: 'Check me out', radios: ['Default radio', 'Checked radio'],
+  cardKicker: 'Featured', cardTitle: 'Card title', cardSub: 'Card subtitle · text-muted',
+  cardBody: 'Some quick example text to build on the card title and make up the bulk of the card’s content.',
+  cardRows: [['An item', 'A second item'], ['Card link', 'Another link']], cardA1: 'Go somewhere', cardA2: 'Cancel',
+  alerts: [ { c: '#198754', t: 'Well done!', b: 'A simple success alert — check it out!' }, { c: '#997404', t: 'Heads up!', b: 'A simple warning alert — check it out!' }, { c: '#DC3545', t: 'Oh snap!', b: 'A simple danger alert — change a few things and try again.' } ],
+  tabs: ['Home', 'Profile', 'Messages', 'Settings'],
+  fonts: [ { f: 'System font stack', r: '$font-family-sans-serif — native', s: 'Bootstrap' }, { f: 'SFMono / Menlo', r: '$font-family-monospace — code', s: '.btn' } ],
+  fnote: 'Bootstrap ships no webfont: it uses the native system stack (system-ui, Segoe UI, Roboto…) so every platform renders in its own voice.',
+  footL: 'Bootstrap v5.3 · getbootstrap.com' },
+
+{ id: 'tailwind', lang: 'en', chip: 'Tailwind', mark: 'T', name: 'Tailwind UI', en: 'Tailwind CSS · Catalyst & friends',
+  kicker: 'Tailwind CSS · Utility-first', title: 'Components composed from utilities',
+  titleEn: 'The slate-and-indigo look of the modern web — Inter, soft shadows, and a radius on everything.',
+  headStack: "'Inter', system-ui, sans-serif", bodyStack: "'Inter', system-ui, sans-serif", r: 16, rSm: 10, rBtn: 10,
+  light: { bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A', sub: '#64748B', border: '#E2E8F0', accent: '#6366F1', onAccent: '#FFFFFF' },
+  dark: { bg: '#0F172A', surface: '#1E293B', text: '#F1F5F9', sub: '#94A3B8', border: '#334155', accent: '#818CF8', onAccent: '#1E1B4B' },
+  tags: ['English', 'Utility-first', 'Inter'],
+  pal: [ { code: '900', name: 'Slate 900', en: 'text-slate-900', hex: '#0F172A' }, { code: '500', name: 'Indigo 500', en: 'bg-indigo-500', hex: '#6366F1' }, { code: '500', name: 'Sky 500', en: 'bg-sky-500', hex: '#0EA5E9' }, { code: '500', name: 'Emerald 500', en: 'bg-emerald-500', hex: '#10B981' }, { code: '500', name: 'Amber 500', en: 'bg-amber-500', hex: '#F59E0B' }, { code: '500', name: 'Rose 500', en: 'bg-rose-500', hex: '#F43F5E' } ],
+  type: [ { n: 'text-5xl', s: 48, w: 700, x: 'Ship faster.' }, { n: 'text-2xl', s: 24, w: 600, x: 'Everything is a utility' }, { n: 'text-base', s: 16, w: 400, x: 'Rapidly build modern websites without ever leaving your HTML.' }, { n: 'text-xs', s: 12, w: 500, x: 'UPDATED 2M AGO · MAIN' } ],
+  btnP: 'Deploy', btnS: 'Preview', btnG: 'View docs', btnD: 'Disabled',
+  badges: [ { l: 'PASSING', c: '#10B981', sub: 'CI' }, { l: 'PREVIEW', c: '#6366F1', sub: 'vercel' }, { l: 'V4.1', c: '#0EA5E9', sub: 'Release' }, { l: 'BREAKING', c: '#F43F5E', sub: 'Changelog' } ],
+  formLabel: 'Project name', formPh: 'acme-web', formHelp: 'Used in your dashboard and deploy URLs.',
+  formSel: 'Framework preset', opts: ['Next.js', 'Astro', 'SvelteKit', 'Remix'],
+  tg: [ { l: 'Preview deployments' }, { l: 'Web analytics' } ], check: 'Enable dark mode variant', radios: ['App Router', 'Pages Router'],
+  cardKicker: 'Production · main', cardTitle: 'acme-web', cardSub: 'Deployed 2m ago by aiko',
+  cardBody: 'Build completed in 48s. 0 errors, 2 warnings. Lighthouse performance 99.',
+  cardRows: [['Domain', 'acme.com'], ['Build', '48s · Node 22']], cardA1: 'Visit', cardA2: 'Logs',
+  alerts: [ { c: '#10B981', t: 'Deployed', b: 'acme-web is live at acme.com.' }, { c: '#F59E0B', t: 'Warning', b: '2 unused CSS layers detected in build output.' }, { c: '#F43F5E', t: 'Build failed', b: 'Type error in app/page.tsx on line 42.' } ],
+  tabs: ['Overview', 'Deployments', 'Analytics', 'Settings'],
+  fonts: [ { f: 'Inter', r: 'The de-facto Tailwind UI typeface', s: 'Inter' }, { f: 'JetBrains Mono', r: 'Code blocks & class names', s: 'bg-indigo-500' } ],
+  fnote: 'Tailwind’s own sites and UI kits are set in Inter, with a mono face for the utility class names that define the system.',
+  footL: 'Tailwind CSS · tailwindcss.com' },
+
+{ id: 'line', lang: 'ja', chip: 'LINE', mark: 'L', name: 'LINEデザイン', en: 'LINE Design System · メッセンジャー',
+  kicker: 'LINE · コミュニケーションアプリ', title: 'トークからウォレットまで、緑でつながる',
+  titleEn: 'From chat to wallet — the friendly green system of Japan’s everyday messenger.',
+  headStack: NOTO_JP, bodyStack: NOTO_JP, r: 18, rSm: 10, rBtn: 999,
+  light: { bg: '#F7F8F9', surface: '#FFFFFF', text: '#111111', sub: '#8E939B', border: '#E6E8EA', accent: '#06C755', onAccent: '#FFFFFF' },
+  dark: { bg: '#111417', surface: '#1C2126', text: '#F2F4F5', sub: '#9AA1A9', border: '#2E353C', accent: '#06C755', onAccent: '#FFFFFF' },
+  tags: ['日本語', 'メッセンジャー UI', 'LINE Seed JP'],
+  pal: [ { code: 'GR', name: 'LINEグリーン', en: 'Brand green', hex: '#06C755' }, { code: 'BK', name: 'テキスト', en: 'Text', hex: '#111111' }, { code: 'BL', name: 'リンク', en: 'Links', hex: '#3D8BFF' }, { code: 'RD', name: 'アラート', en: 'Alert / badge', hex: '#F5484D' }, { code: 'YL', name: 'コイン', en: 'LINE Points', hex: '#FFB400' }, { code: 'GY', name: 'サブ', en: 'Secondary text', hex: '#8E939B' } ],
+  type: [ { n: '大見出し Display', s: 44, w: 900, x: 'トーク' }, { n: '見出し Heading', s: 26, w: 700, x: '友だちを追加' }, { n: '本文 Body', s: 15.5, w: 400, x: 'また明日ね！打ち合わせの資料、先に送っておきます。' }, { n: '注記 Caption', s: 12, w: 400, x: '既読 21:04' } ],
+  btnP: '送信', btnS: '友だち追加', btnG: 'スタンプ', btnD: '利用不可',
+  badges: [ { l: '既読', c: '#8E939B', sub: '21:04' }, { l: 'NEW', c: '#06C755', sub: 'スタンプ' }, { l: '公式', c: '#3D8BFF', sub: 'アカウント' }, { l: '3', c: '#F5484D', sub: '未読' } ],
+  formLabel: 'ステータスメッセージ', formPh: '今なにしてる？', formHelp: '500文字まで入力できます。',
+  formSel: '公開範囲', opts: ['全体公開', '友だちまで', 'グループのみ', '非公開'],
+  tg: [ { l: '通知' }, { l: '既読を送信' } ], check: '利用規約に同意する', radios: ['スタンプ優先', 'テキスト優先'],
+  cardKicker: 'トーク · 21:04', cardTitle: '田中さん', cardSub: 'オンライン',
+  cardBody: '「また明日ね！打ち合わせの資料、先に送っておきます。スタンプありがとう」',
+  cardRows: [['未読', '3件'], ['共有', '写真2枚 · リンク1件']], cardA1: '返信する', cardA2: '通話',
+  alerts: [ { c: '#06C755', t: '送金完了', b: '¥1,200をLINE Payで送金しました。' }, { c: '#FFB400', t: 'ポイント獲得', b: '50 LINEポイントを獲得しました。' }, { c: '#F5484D', t: '送信エラー', b: 'メッセージを送信できませんでした。ネットワークを確認してください。' } ],
+  tabs: ['ホーム', 'トーク', 'VOOM', 'ウォレット'],
+  fonts: [ { f: 'LINE Seed JP', r: 'ブランド書体 · Brand typeface', s: 'トーク' }, { f: 'Noto Sans JP', r: '本ページの代替 · Web substitute', s: 'メッセージ' } ],
+  fnote: 'LINEは自社開発のオープンソース書体「LINE Seed JP」を使用。丸みのある親しみやすいゴシック体です。本ページではNoto Sans JPで代替しています。',
+  footL: 'LINE Design System · line.me' },
+
+{ id: 'swiss', lang: 'de', chip: 'Schweizer Stil', mark: 'H', name: 'Schweizer Grafik', en: 'International Typographic Style · Zürich 1958', tt: 'uppercase',
+  kicker: 'Internationale Typografie · Zürich', title: 'Komponenten nach Schweizer Art',
+  titleEn: 'Grid, Helvetica, red-black-white. The 1958 Zurich school, rebuilt as an interface library. Weniger, aber besser.',
+  headStack: "'Helvetica Neue', Helvetica, Arial, sans-serif", bodyStack: "'Helvetica Neue', Helvetica, Arial, sans-serif", r: 0, rSm: 0, rBtn: 0,
+  light: { bg: '#FFFFFF', surface: '#F4F4F4', text: '#000000', sub: '#707070', border: '#D8D8D8', accent: '#E30613', onAccent: '#FFFFFF' },
+  dark: { bg: '#0A0A0A', surface: '#161616', text: '#FFFFFF', sub: '#8F8F8F', border: '#2C2C2C', accent: '#FF2B36', onAccent: '#FFFFFF' },
+  tags: ['Deutsch · German', 'Raster · Grid', 'Helvetica'],
+  pal: [ { code: 'RT', name: 'Rot', en: 'Red — the only accent', hex: '#E30613' }, { code: 'SW', name: 'Schwarz', en: 'Black', hex: '#000000' }, { code: 'WS', name: 'Weiss', en: 'White', hex: '#FFFFFF' }, { code: 'GR', name: 'Grau 45', en: 'Grey', hex: '#707070' }, { code: 'GR2', name: 'Grau 85', en: 'Light grey', hex: '#D8D8D8' }, { code: 'RT2', name: 'Rot 60', en: 'Red hover', hex: '#B30510' } ],
+  type: [ { n: 'Plakat', s: 50, w: 700, x: 'Grafik' }, { n: 'Titel', s: 28, w: 700, x: 'Das Raster ordnet' }, { n: 'Grundtext', s: 15, w: 400, x: 'Die Typografie ist das Fundament der visuellen Gestaltung.' }, { n: 'Legende', s: 11, w: 400, x: 'Zürich · Basel · 1958' } ],
+  btnP: 'Senden', btnS: 'Abbrechen', btnG: 'Mehr', btnD: 'Inaktiv',
+  badges: [ { l: 'NEU', c: '#E30613', sub: 'Ausgabe 12' }, { l: 'RASTER', c: '#000000', sub: '12 Spalten' }, { l: 'SERIE A', c: '#707070', sub: 'Plakat' }, { l: '1958', c: '#E30613', sub: 'Zürich' } ],
+  formLabel: 'Name', formPh: 'z. B. Müller-Brockmann', formHelp: 'Bitte vollständigen Namen angeben.',
+  formSel: 'Format', opts: ['A4 · 210×297', 'A3 · 297×420', 'A2 · 420×594', 'Weltformat'],
+  tg: [ { l: 'Raster anzeigen' }, { l: 'Nur Grossbuchstaben' } ], check: 'Asymmetrischer Satz', radios: ['Linksbündig', 'Achsensymmetrisch'],
+  cardKicker: 'Ausstellung · Museum', cardTitle: 'Neue Grafik', cardSub: 'Zürich · 17. Juni – 30. September',
+  cardBody: 'Konstruktive Grafik aus der Schweiz. Plakate, Erscheinungsbilder und Typografie der Zürcher Schule.',
+  cardRows: [['Eintritt', 'CHF 12.00'], ['Kurator', 'J. Müller-Brockmann']], cardA1: 'Tickets', cardA2: 'Programm',
+  alerts: [ { c: '#000000', t: 'Hinweis', b: 'Das Museum bleibt montags geschlossen.' }, { c: '#707070', t: 'Achtung', b: 'Begrenzte Platzzahl — Reservation empfohlen.' }, { c: '#E30613', t: 'Fehler', b: 'Das Formular ist unvollständig. Bitte Name angeben.' } ],
+  tabs: ['Raster', 'Fläche', 'Punkt', 'Linie'],
+  fonts: [ { f: 'Helvetica Neue', r: 'Die Schrift — 1957, Haas', s: 'Helvetica' }, { f: 'Akzidenz-Grotesk', r: 'Die Vorgängerin — Berthold, 1896', s: 'Grotesk' } ],
+  fnote: 'Der Schweizer Stil kennt im Grunde eine Schrift: die Grotesk. Helvetica (1957) und ihre Vorgängerin Akzidenz-Grotesk tragen das gesamte System — hier in Helvetica Neue gesetzt.',
+  footL: 'Internationale Typografie · Zürich / Basel' },
+
+{ id: 'persona3', lang: 'ja', chip: 'ペルソナ3', mark: 'P3', name: 'ペルソナ3', en: 'Persona 3 · Velvet Blue UI (homage)',
+  kicker: 'ペルソナ3 リロード — UIオマージュ', title: '蒼き刻——コンポーネント集',
+  titleEn: 'A blue-hour component library — an original homage to the calm, melancholic menu design of Persona 3. Memento mori.',
+  headStack: "'Space Grotesk', 'Noto Sans JP', sans-serif", bodyStack: NOTO_JP, r: 4, rSm: 3, rBtn: 2,
+  light: { bg: '#EEF3F8', surface: '#FFFFFF', text: '#14202B', sub: '#5B6B78', border: '#D3DEE7', accent: '#1090D0', onAccent: '#FFFFFF' },
+  dark: { bg: '#05101C', surface: '#0B1D30', text: '#EAF4FB', sub: '#7FA6C0', border: '#163247', accent: '#34C3F0', onAccent: '#04121D' },
+  tags: ['日本語 · English', 'Velvet Blue', 'ファンによるオマージュ · Fan homage'],
+  pal: [ { code: '蒼', name: 'ベルベットブルー', en: 'Velvet Blue', hex: '#1090D0' }, { code: '闇', name: 'ダークアワー', en: 'Midnight', hex: '#05101C' }, { code: '月', name: 'ムーンイエロー', en: 'Moon (Dark Hour)', hex: '#F2C230' }, { code: '械', name: 'アイギス', en: 'Silver', hex: '#9FB3C2' }, { code: '契', name: 'イオ', en: 'Bond green', hex: '#3FB6A0' }, { code: '弱', name: '弱点', en: 'Weakness red', hex: '#E23A3A' } ],
+  type: [ { n: '表示 Display', s: 48, w: 700, x: '蒼' }, { n: '見出し Heading', s: 28, w: 700, x: 'ダークアワー' }, { n: '本文 Body', s: 15.5, w: 400, x: '影時間、人は棺へと姿を変え、タルタロスがそびえ立つ。' }, { n: '注記 Caption', s: 12, w: 400, x: 'MEMENTO MORI · 2009.04.09' } ],
+  btnP: 'ペルソナ召喚', btnS: '装備', btnG: '戦術変更', btnD: '行動不能',
+  badges: [ { l: '愚者 0', c: '#1090D0', sub: 'Arcana' }, { l: 'HP 240', c: '#3FB6A0', sub: 'Status' }, { l: 'SP 80', c: '#1090D0', sub: 'Status' }, { l: '弱点', c: '#E23A3A', sub: 'Weakness' } ],
+  formLabel: '主人公の名前', formPh: '結城 理', formHelp: '4文字まで入力できます。 Up to 4 characters.',
+  formSel: '戦術 / Tactics', opts: ['総攻撃 All-out', '各自の判断 Act freely', '回復優先 Heal', '一点集中 Focus'],
+  tg: [ { l: 'オート戦闘 Auto-battle' }, { l: '弱点を強調 Highlight weakness' } ], check: 'コミュを優先する · Prioritise Social Links', radios: ['直接指示 Direct', 'おまかせ Freely'],
+  cardKicker: 'ペルソナ召喚 · Arcana 愚者', cardTitle: 'オルフェウス', cardSub: 'Orpheus · Lv 1 · 初期ペルソナ',
+  cardBody: '竪琴を抱く仮面の詩人。炎の力を宿し、物語の始まりに主人公へと寄り添う。弱点は氷結。',
+  cardRows: [['耐性 Resist', '火炎 · 電撃'], ['弱点 Weak', '氷結 Ice']], cardA1: '召喚 Summon', cardA2: '詳細',
+  alerts: [ { c: '#3FB6A0', t: 'コードが青', b: '作戦は順調に進行しています。 The operation is proceeding smoothly.' }, { c: '#F2C230', t: '影時間 接近', b: 'まもなくダークアワーが訪れます。 The Dark Hour approaches.' }, { c: '#E23A3A', t: 'シャドウ出現', b: '強力なシャドウを感知しました。 A powerful Shadow has been detected.' } ],
+  tabs: ['戦術', 'ステータス', '装備', 'ペルソナ'],
+  fonts: [ { f: 'Space Grotesk', r: '欧文・数値 · Latin & figures', s: 'VELVET' }, { f: 'Noto Sans JP', r: '和文 · Japanese text', s: '蒼き刻' } ],
+  fnote: 'ゲームの青を基調とした幾何学的なメニューUIへの、独自のオマージュです。ここでは Space Grotesk と Noto Sans JP で近似しています。ロゴや素材の複製は含みません。 An original homage to the game’s blue, geometric menus; approximated with Space Grotesk and Noto Sans JP, with no reproduced logos or assets.',
+  footL: 'Persona 3 — 蒼のUIオマージュ · Unofficial fan homage' },
+
+{ id: 'persona5', lang: 'ja', chip: 'ペルソナ5', mark: 'P5', name: 'ペルソナ5', en: 'Persona 5 · Take Your Heart (homage)',
+  kicker: 'ペルソナ5 — UIオマージュ', title: '心の怪盗団——コンポーネント集',
+  titleEn: 'A red-and-black component library — an original homage to the striking, jagged interface style of Persona 5. Take your heart.',
+  headStack: "'Space Grotesk', 'Noto Sans JP', sans-serif", bodyStack: NOTO_JP, r: 2, rSm: 0, rBtn: 0,
+  light: { bg: '#FFFFFF', surface: '#F4F4F4', text: '#0A0A0A', sub: '#6A6A6A', border: '#E0DEDE', accent: '#E60012', onAccent: '#FFFFFF' },
+  dark: { bg: '#0A0A0A', surface: '#141414', text: '#F5F5F5', sub: '#B0B0B0', border: '#2A2A2A', accent: '#E60012', onAccent: '#FFFFFF' },
+  tags: ['日本語 · English', 'Phantom Red', 'ファンによるオマージュ · Fan homage'],
+  pal: [ { code: '怪', name: 'ファントムレッド', en: 'Phantom Red', hex: '#E60012' }, { code: '黒', name: 'インクブラック', en: 'Ink Black', hex: '#0A0A0A' }, { code: '白', name: 'ホワイト', en: 'White', hex: '#FFFFFF' }, { code: '影', name: 'スモーク', en: 'Smoke grey', hex: '#6A6A6A' }, { code: '仮', name: 'マスク', en: 'Mask silver', hex: '#C9C9C9' }, { code: '報', name: 'カレンダー', en: 'Calendar red', hex: '#B30510' } ],
+  type: [ { n: '表示 Display', s: 50, w: 700, x: '怪盗' }, { n: '見出し Heading', s: 28, w: 700, x: 'オールライト！' }, { n: '本文 Body', s: 15.5, w: 400, x: '予告状を送りつけ、歪んだ欲望のありかを、白日の下に晒す。' }, { n: '注記 Caption', s: 12, w: 400, x: 'TAKE YOUR HEART · 20XX' } ],
+  btnP: '実行', btnS: '逃走', btnG: '総攻撃', btnD: '行動不能',
+  badges: [ { l: 'JOKER', c: '#E60012', sub: 'Code name' }, { l: '総攻撃', c: '#E60012', sub: 'All-out' }, { l: 'DOWN', c: '#0A0A0A', sub: '弱点' }, { l: 'MORE', c: '#E60012', sub: '1 More' } ],
+  formLabel: '予告状の宛名 / Target', formPh: '例：歪んだ大人', formHelp: '標的の名を記してください。 Name your target.',
+  formSel: '行き先 / Destination', opts: ['パレス Palace', 'メメントス Mementos', '渋谷 Shibuya', 'ルブラン Leblanc'],
+  tg: [ { l: 'オート戦闘 Auto-battle' }, { l: '弱点を強調 Highlight weakness' } ], check: '予告状を送る · Send the calling card', radios: ['交渉 Negotiate', '総攻撃 All-out attack'],
+  cardKicker: '予告状 · CALLING CARD', cardTitle: '心を頂戴する', cardSub: 'The Phantom Thieves of Hearts',
+  cardBody: '歪んだ欲望に囚われしあなたへ。あなたの罪を自白させ、その歪んだ心、頂戴しに参ります。——心の怪盗団',
+  cardRows: [['標的 Target', 'パレスの主'], ['決行 Date', '本日中 Today']], cardA1: '実行する', cardA2: '取消',
+  alerts: [ { c: '#1E8E3E', t: 'ミッション成功', b: 'オタカラの奪取に成功しました。 The Treasure has been secured.' }, { c: '#E6A100', t: '警戒度 上昇', b: 'シャドウに気づかれ始めています。 Security level is rising.' }, { c: '#E60012', t: 'ゲームオーバー', b: '主人公が倒れました。世界は元に戻ってしまう。 The protagonist has fallen.' } ],
+  tabs: ['マップ', 'スキル', '装備', '仲間'],
+  fonts: [ { f: 'Space Grotesk', r: '欧文・見出し · Latin & display', s: 'JOKER' }, { f: 'Noto Sans JP', r: '和文 · Japanese text', s: '怪盗団' } ],
+  fnote: 'ゲームの赤と黒、鋭角的なUIへの独自のオマージュです。ここでは太めのグロテスク（Space Grotesk）と Noto Sans JP で近似しています。ロゴや独自書体・素材の複製は含みません。 An original homage to the game’s jagged red-and-black interface; approximated with a heavy grotesque and Noto Sans JP, with no reproduced logos, bespoke type, or assets.',
+  footL: 'Persona 5 — 赤と黒のUIオマージュ · Unofficial fan homage' }
+];
+
+function withAlpha(hex, a) {
+  if (!hex || hex[0] !== '#' || hex.length < 7) return hex;
+  return hex + a;
+}
+
+class Component extends DCLogic {
+  state = { i: 0, dark: null, tab: 0, tg: [true, false], check: true, radio: 0, acc: 0, pg: 2, motion: false, cp: '', active: 'sec-bento' };
+
+  componentDidMount() {
+    try {
+      const li = parseInt(localStorage.getItem('tml-lib'), 10);
+      const dk = localStorage.getItem('tml-dark');
+      const patch = {};
+      if (!isNaN(li) && li >= 0 && li < THEMES.length) patch.i = li;
+      if (dk === '1' || dk === '0') patch.dark = dk === '1';
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) {}
+    this._kb = (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight') this.setLib(this.state.i + 1);
+      if (e.key === 'ArrowLeft') this.setLib(this.state.i - 1);
+    };
+    window.addEventListener('keydown', this._kb);
+    this._spy = () => {
+      if (this._raf) return;
+      this._raf = requestAnimationFrame(() => {
+        this._raf = 0;
+        let cur = GROUP_ORDER[0];
+        for (const g of GROUP_ORDER) {
+          const el = document.getElementById(GROUP_ID[g]);
+          if (el && el.getBoundingClientRect().top - 150 <= 0) cur = g;
+        }
+        const id = GROUP_ID[cur];
+        if (id !== this.state.active) this.setState({ active: id });
+      });
+    };
+    window.addEventListener('scroll', this._spy, { passive: true });
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this._kb);
+    window.removeEventListener('scroll', this._spy);
+  }
+
+  setLib(k) {
+    const n = THEMES.length;
+    const i = ((k % n) + n) % n;
+    this.setState({ i, cp: '', tab: 0, acc: 0 });
+    try { localStorage.setItem('tml-lib', String(i)); } catch (e) {}
+  }
+  jumpTo(id) {
+    const el = document.getElementById(id);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 118, behavior: 'smooth' });
+  }
+
+  renderVals() {
+    const s = this.state, n = THEMES.length, t = THEMES[s.i];
+    const dark = s.dark !== null ? s.dark : (this.props.startDark ?? false);
+    const c = dark ? t.dark : t.light;
+    const end = (this.props.showEnglish ?? true) ? 'block' : 'none';
+    const lg = LANG[t.lang] || LANG.en;
+    const tt = t.tt || 'none';
+    const tint = withAlpha(c.accent, dark ? '22' : '14');
+    const sf2 = dark ? withAlpha(c.accent, '14') : withAlpha(c.text, '08');
+    const dg = (t.alerts[2] && t.alerts[2].c) || '#E5484D';
+
+    // group headings
+    const gm = {};
+    GROUP_ORDER.forEach((g, k) => {
+      gm[g] = { num: String(k + 1).padStart(2, '0'), t: lg.groups[g][0], en: lg.groups[g][1] };
+    });
+
+    const navGroups = GROUP_ORDER.map((g) => {
+      const on = s.active === GROUP_ID[g];
+      return {
+        num: gm[g].num, t: gm[g].t, en: gm[g].en,
+        fw: on ? 800 : 600,
+        bg: on ? tint : 'transparent',
+        fg: on ? c.text : c.sub,
+        barC: on ? c.accent : 'transparent',
+        numC: on ? c.accent : c.sub,
+        go: () => this.jumpTo(GROUP_ID[g])
+      };
+    });
+
+    const pal = t.pal.map((p) => ({
+      code: p.code, name: p.name, en: p.en, hex: p.hex,
+      chip: s.cp === p.hex ? '✓' : p.code,
+      copy: () => { try { navigator.clipboard.writeText(p.hex); } catch (e) {} this.setState({ cp: p.hex }); }
+    }));
+
+    const chips = THEMES.map((th, k) => ({
+      n: th.chip, go: () => this.setLib(k),
+      bg: k === s.i ? c.text : 'transparent',
+      fg: k === s.i ? c.bg : c.sub,
+      bd: k === s.i ? c.text : c.border
+    }));
+
+    // foundations generic
+    const spacing = [4, 8, 12, 16, 24, 32].map((v) => ({ v, px: v + 'px' }));
+    const radii = [ { n: 'sm', px: t.rSm + 'px' }, { n: 'md', px: t.r + 'px' }, { n: 'pill', px: '999px' } ];
+    const shadows = [ { n: 'sm', v: '0 1px 2px rgba(0,0,0,0.12)' }, { n: 'md', v: '0 4px 12px rgba(0,0,0,0.16)' }, { n: 'lg', v: '0 14px 34px rgba(0,0,0,0.22)' } ];
+    const bps = [ { n: 'sm', v: '640px', w: '30%' }, { n: 'md', v: '768px', w: '48%' }, { n: 'lg', v: '1024px', w: '72%' }, { n: 'xl', v: '1280px', w: '100%' } ];
+    const zLayers = [ { l: 'z-10', o: '0px' }, { l: 'z-20', o: '16px' }, { l: 'z-30', o: '32px' } ];
+    const gridCells = [0.85, 0.6, 0.4, 0.55, 0.75, 0.5].map((o) => ({ o }));
+
+    // text
+    const txt = { label: PRIM.label.toUpperCase() + ' · ' + (t.type[3] ? t.type[3].n : ''), heading: t.type[1].x, body: t.type[2].x, caption: t.type[3].x, link: t.btnG };
+
+    // actions
+    const iconBtns = [ { g: '★' }, { g: '♥' }, { g: '↻' }, { g: '⋯' } ].map((b) => ({ g: b.g, rad: t.rBtn > 20 ? '50%' : (t.rSm + 'px') }));
+    const menuItems = t.tabs.map((l, k) => ({ l, fw: k === 0 ? 800 : 500, bg: k === 0 ? tint : 'transparent', fg: k === 0 ? c.text : c.sub, dot: k === 0 ? c.accent : c.border }));
+
+    // forms
+    const toggles = t.tg.map((item, k) => ({ l: item.l, bg: s.tg[k] ? c.accent : c.border, x: s.tg[k] ? '25px' : '3px', go: () => { const tg = s.tg.slice(); tg[k] = !tg[k]; this.setState({ tg }); } }));
+    const radios = t.radios.map((l, k) => ({ l, bd: s.radio === k ? c.accent : c.border, dot: s.radio === k ? c.accent : 'transparent', go: () => this.setState({ radio: k }) }));
+
+    // surfaces
+    const cardRows = t.cardRows.map(([k, v]) => ({ k, v }));
+    const accItems = t.alerts.map((a, k) => ({ t: a.t, b: a.b, open: s.acc === k, show: s.acc === k ? 'block' : 'none', sign: s.acc === k ? '−' : '+', go: () => this.setState({ acc: s.acc === k ? -1 : k }) }));
+    const drawerNav = t.tabs.slice(0, 3).map((l, k) => ({ l, bg: k === 0 ? tint : 'transparent', fg: k === 0 ? c.text : c.sub, fw: k === 0 ? 800 : 500, dot: k === 0 ? c.accent : c.border }));
+    const popActions = t.tabs.slice(0, 2).map((l) => ({ l }));
+    const tabs = t.tabs.map((l, k) => ({ l, fg: s.tab === k ? c.text : c.sub, fw: s.tab === k ? 800 : 500, bc: s.tab === k ? c.accent : 'transparent', go: () => this.setState({ tab: k }) }));
+
+    // navigation
+    const sideNav = t.tabs.map((l, k) => ({ l, bg: k === 0 ? tint : 'transparent', fg: k === 0 ? c.text : c.sub, fw: k === 0 ? 800 : 600, barC: k === 0 ? c.accent : 'transparent', dot: k === 0 ? c.accent : c.border }));
+    const crumbSrc = [lg.home, t.tabs[0], t.tabs[1]];
+    const crumbs = crumbSrc.map((l, k) => ({ l, c: k === crumbSrc.length - 1 ? c.accent : c.sub, fw: k === crumbSrc.length - 1 ? 800 : 600, sepShow: k === crumbSrc.length - 1 ? 'none' : 'inline' }));
+    const pageList = [1, 2, 3, 0, 9];
+    const pages = pageList.map((p) => {
+      const gap = p === 0;
+      const cur = p === s.pg;
+      return { l: gap ? '…' : String(p), bg: cur ? c.accent : c.surface, fg: cur ? c.onAccent : c.text, bd: cur ? c.accent : c.border, cur: gap ? 'default' : 'pointer', go: () => { if (!gap) this.setState({ pg: p }); } };
+    });
+
+    // feedback
+    const badges = t.badges.map((b) => ({ ...b, bg: withAlpha(b.c, '14') }));
+    const alerts = t.alerts.map((a) => ({ ...a, bg: withAlpha(a.c, dark ? '22' : '1A') }));
+
+    // data
+    const tableCols = [ { x: t.cardRows[0][0] ? 'Field' : 'Field' }, { x: 'Value' }, { x: 'Status' } ];
+    const st = t.badges;
+    const tableRows = t.cardRows.map((row, k) => {
+      const b = st[k] || st[0];
+      return { a: row[0], b: row[1], badge: b.l, badgeC: b.c, badgeBg: withAlpha(b.c, '18') };
+    });
+    tableRows.push({ a: t.pal[0].name, b: t.pal[0].hex, badge: st[2] ? st[2].l : st[0].l, badgeC: (st[2] || st[0]).c, badgeBg: withAlpha((st[2] || st[0]).c, '18') });
+    const listRows = t.opts.map((l) => ({ l }));
+    const chipTags = t.badges.map((b) => ({ l: b.l, c: b.c, bg: withAlpha(b.c, '16') }));
+    const avInit = ['A', 'K', 'M', '+5'];
+    const avatars = avInit.map((l, k) => ({ l, ml: k === 0 ? '0' : '-12px', bg: k === 3 ? c.surface : (k % 2 ? c.text : c.accent), fg: k === 3 ? c.sub : (k % 2 ? c.bg : c.onAccent), dotShow: k === 0 ? 'block' : 'none' }));
+
+    // bento
+    const bento = {
+      metric: t.cardRows[1] ? t.cardRows[1][1] : t.badges[0].l,
+      bars: [0.5, 0.8, 0.45, 1, 0.65, 0.85].map((h) => ({ h: Math.round(h * 100) + '%' })),
+      nav: t.tabs.slice(0, 3).map((l, k) => ({ l, bg: k === 0 ? withAlpha(c.onAccent, '00') : 'transparent', fg: c.text, fw: k === 0 ? 800 : 500, dot: k === 0 ? c.accent : c.border })),
+      alert: { t: t.alerts[0].t, b: t.alerts[0].b, c: t.alerts[0].c, bg: withAlpha(t.alerts[0].c, dark ? '22' : '1A') },
+      avatar: t.mark || t.name[0], avatarName: t.cardTitle,
+      tags: t.badges.slice(0, 3).map((b) => ({ l: b.l, c: b.c, bg: withAlpha(b.c, '18') }))
+    };
+    // bento nav needs its own active bg tint
+    bento.nav = t.tabs.slice(0, 3).map((l, k) => ({ l, bg: k === 0 ? tint : 'transparent', fg: c.text, fw: k === 0 ? 800 : 500, dot: k === 0 ? c.accent : c.border }));
+
+    return {
+      t, c, end, tt, sf2, dg, tint,
+      rCss: t.r + 'px', rsCss: t.rSm + 'px', rbCss: t.rBtn + 'px',
+      markChar: t.mark || t.name[0],
+      idxLabel: String(s.i + 1).padStart(2, '0') + ' / ' + n,
+      goPrev: () => this.setLib(s.i - 1), goNext: () => this.setLib(s.i + 1),
+      toggleDark: () => { const d = !dark; this.setState({ dark: d }); try { localStorage.setItem('tml-dark', d ? '1' : '0'); } catch (e) {} },
+      modeTxt: dark ? '☀ ' + lg.mode[0] : '☾ ' + lg.mode[1],
+      chips, navGroups, gm, P: PRIM,
+      CH: { contents: lg.contents, kbdHint: lg.kbd, bentoNote: lg.bentoNote, motionNote: lg.motionNote },
+      U: { container: lg.container, divider: lg.divider, dialogTitle: lg.dialogTitle, tooltip: lg.tooltip, popover: lg.popover, toast: lg.toast, empty0: lg.empty[0], empty1: lg.empty[1] },
+      heroTags: t.tags.map((x) => ({ x })),
+      pal, typeRows: t.type.map((r) => ({ ...r, px: r.s + 'px' })),
+      spacing, radii, shadows, bps, zLayers, gridCells,
+      txt, iconBtns, menuItems,
+      opts: t.opts.map((x) => ({ x })),
+      checkBd: s.check ? c.accent : c.border, checkBg: s.check ? c.accent : 'transparent', checkMark: s.check ? '✓' : '',
+      toggleCheck: () => this.setState({ check: !s.check }),
+      radios, toggles,
+      cardRows, accItems, drawerNav, popActions, tabs, viewing: lg.viewing + ' — ' + t.tabs[s.tab],
+      sideNav, crumbs, pages, pagePrev: () => this.setState({ pg: Math.max(1, s.pg - 1) }), pageNext: () => this.setState({ pg: Math.min(9, s.pg + 1) }),
+      badges, alerts,
+      tableCols, tableRows, listRows, chipTags, avatars,
+      bento, fontRows: t.fonts,
+      motionX: s.motion ? 'calc(100% - 38px)' : '6px', toggleMotion: () => this.setState({ motion: !s.motion })
+    };
+  }
+}
+</script>
+</body>
+</html>

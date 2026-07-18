@@ -1,4 +1,4 @@
-# DESIGN.md: FlowerStore.ph mobile reference
+# DESIGN.md: FlowerStore.ph responsive reference
 
 ## Source
 
@@ -14,7 +14,7 @@ Use the screenshot as the visual source of truth for FlowerStore-inspired hierar
 
 ## Design Summary
 
-Build a phone-first gift-finder that feels like a FlowerStore shopping surface rather than a standalone game. It should lead with the familiar coral retail identity, real product imagery, compact commerce controls, delivery context, and a decisive purchase path. The swipe action is the only new interaction and should sit naturally inside the mobile shopping flow.
+Build a mobile-first gift-finder that feels like a FlowerStore shopping surface rather than a standalone game. It should lead with the familiar coral retail identity, real product imagery, compact commerce controls, delivery context, and a decisive purchase path. The swipe action is the only new interaction and should sit naturally inside the mobile shopping flow. On a desktop, use the additional width for a persistent navigation rail, a two-column setup, and three-card result rows rather than enlarging a phone frame.
 
 ## Design Tokens
 
@@ -37,7 +37,8 @@ Build a phone-first gift-finder that feels like a FlowerStore shopping surface r
 ### Spacing And Layout
 
 - Base unit: 4px, observed.
-- Mobile app width: 100%, designed first for 320px to 430px. On large screens, center a maximum 430px application surface.
+- Mobile app width: 100%, designed first for 320px to 430px.
+- Desktop at 1024px and above: use a centered desktop workspace up to 1180px, with a persistent left navigation rail and a broad main canvas. Do not simply scale the phone frame.
 - Header and bottom navigation remain visually persistent. Use a 56px app header and 64px bottom navigation with safe-area padding.
 - Keep primary buttons close to 48px high. Use short 2px to 6px radii for retail controls, with pills only for filters and chips.
 
@@ -49,13 +50,14 @@ Build a phone-first gift-finder that feels like a FlowerStore shopping surface r
 - **Gift card:** square-cornered white product surface, generous image area, small category label, product name, and price. No fabricated product ratings.
 - **Swipe actions:** two equal 52px touch targets with clear labels and coral positive action. Keyboard arrows remain a desktop accessibility enhancement.
 - **Result:** product-detail-style panel with a coral `Your match` label, evidence-based reasons, and one clear product-page CTA.
-- **Bottom nav:** Home, Shop, Gift Finder, Orders, Account; Gift Finder is active.
+- **Navigation:** Home, Shop, Gift Finder, Orders, Account; use bottom navigation on phones and a labeled side rail on desktop. Gift Finder is active.
 
 ## Page Patterns
 
 - Setup: header, delivery context, small task heading, recipient tiles, occasion chips, full-width start CTA, bottom nav.
 - Swipe: compact progress and context, one product card, explicit left/right actions, bottom nav.
 - Result: product image, match label, product name and from-price, reasons, original FlowerStore product CTA, bottom nav.
+- Desktop: the setup splits brand context and picker controls across two columns; results use three product cards per row for saved picks and unseen matches.
 
 ## Content Style
 
@@ -67,7 +69,7 @@ Build a phone-first gift-finder that feels like a FlowerStore shopping surface r
 
 1. Treat this as a FlowerStore-inspired mobile prototype, not an unrelated dating interface.
 2. Load Nunito and Prompt with system fallbacks; retain high contrast and reduced-motion support.
-3. Keep the app frame mobile-first and thumb-friendly, including fixed bottom navigation and safe-area spacing.
+3. Keep the app frame mobile-first and thumb-friendly, including fixed bottom navigation and safe-area spacing, then adapt it at desktop sizes with a side rail, two-column setup, and multi-column results.
 4. Use real FlowerStore feed images and product links only; do not copy unrelated site text or invent product ratings.
 5. Preserve the ten-card, unseen-product recommendation model and its existing tests.
 

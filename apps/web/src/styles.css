@@ -369,9 +369,119 @@ kbd { display: none; }
 .mobile-nav svg { width: 18px; height: 18px; stroke-width: 1.75; }
 .mobile-nav .is-active { color: var(--fs-coral-dark); }
 
-@media (min-width: 500px) {
+@media (min-width: 768px) and (max-width: 1023px) {
   body { display: grid; min-height: 100dvh; place-items: center; padding: 22px; }
-  .app-shell { height: min(860px, calc(100dvh - 44px)); min-height: 640px; border: 1px solid var(--fs-border); border-radius: 14px; box-shadow: var(--fs-shadow); }
+  .app-shell { width: min(100%, 680px); height: min(860px, calc(100dvh - 44px)); min-height: 640px; border: 1px solid var(--fs-border); border-radius: 14px; box-shadow: var(--fs-shadow); }
+}
+
+@media (min-width: 1024px) {
+  body { min-height: 100dvh; padding: 32px; background: oklch(0.95 0.007 260); }
+
+  .app-shell {
+    display: grid;
+    grid-template-areas:
+      "header header"
+      "nav main";
+    grid-template-columns: 196px minmax(0, 1fr);
+    grid-template-rows: auto minmax(660px, 1fr);
+    width: min(1180px, 100%);
+    min-height: calc(100dvh - 64px);
+    margin: 0 auto;
+    overflow: visible;
+    border: 1px solid var(--fs-border);
+    border-radius: 14px;
+    box-shadow: var(--fs-shadow);
+  }
+
+  .mobile-header { grid-area: header; }
+  .top-bar { grid-template-columns: 48px 1fr auto; min-height: 62px; padding: 0 24px; }
+  .flowerstore-brand { justify-self: start; width: 172px; }
+  .header-actions { gap: 8px; }
+  .delivery-row { min-height: 42px; padding: 0 24px 12px; font-size: 13px; }
+  .finder-progress { padding: 12px 24px 14px; }
+
+  .mobile-nav {
+    grid-area: nav;
+    display: flex;
+    min-height: 0;
+    padding: 24px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    border-top: 0;
+    border-right: 1px solid var(--fs-border);
+  }
+
+  .mobile-nav span {
+    min-height: 42px;
+    padding: 0 11px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .mobile-nav span.is-active { background: var(--fs-blush); }
+  .mobile-nav svg { width: 19px; height: 19px; }
+
+  .mobile-main { grid-area: main; min-height: 0; overflow: visible; }
+
+  .setup-screen {
+    display: grid;
+    grid-template-columns: minmax(270px, 0.82fr) minmax(430px, 1.18fr);
+    grid-template-rows: 1fr auto;
+    column-gap: 48px;
+    row-gap: 20px;
+    align-items: center;
+    padding: 48px;
+  }
+
+  .finder-intro {
+    grid-row: 1 / span 2;
+    margin: 0;
+    padding: 42px 38px;
+    border: 1px solid oklch(0.9 0.03 22);
+    border-radius: 8px;
+  }
+
+  .finder-intro h1 { font-size: 42px; }
+  .finder-intro > p:not(.finder-kicker) { max-width: 29ch; font-size: 15px; }
+  .picker-section { gap: 28px; }
+  legend { margin-bottom: 12px; font-size: 16px; }
+  .recipient-option { min-height: 78px; padding: 14px 34px 14px 14px; }
+  .occasion-option { min-height: 40px; padding: 0 14px; font-size: 13px; }
+  .setup-cta { margin: 0; padding: 0; }
+  .setup-cta p { text-align: left; }
+
+  .swipe-screen { width: min(100%, 820px); margin: 0 auto; padding: 42px 48px 48px; }
+  .swipe-heading { width: min(100%, 600px); margin: 0 auto 18px; }
+  .swipe-heading h1 { font-size: 32px; }
+  .deck { width: min(100%, 600px); margin: 0 auto; }
+  .gift-card { height: 570px; }
+  .gift-card-copy { padding: 17px 18px; }
+  .gift-card-copy h2 { font-size: 21px; }
+  .product-price-row span { font-size: 16px; }
+  .swipe-helper { width: min(100%, 600px); margin-right: auto; margin-left: auto; }
+  .calibration-note { max-width: 46ch; }
+
+  .result-screen { padding: 34px 42px 44px; }
+  .result-copy h1 { max-width: 22ch; font-size: 36px; }
+  .result-description { max-width: 58ch; font-size: 14px; }
+  .results-group { margin-top: 28px; }
+  .results-group + .results-group { padding-top: 28px; }
+  .results-group-heading { margin-bottom: 14px; }
+  .results-group-heading h2 { font-size: 17px; }
+  .results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .result-product-card { min-height: 318px; grid-template-columns: 1fr; }
+  .result-card-image { min-height: 176px; }
+  .result-card-copy { min-height: 142px; padding: 14px; }
+  .result-card-copy h3 { font-size: 15px; }
+  .result-card-reason { -webkit-line-clamp: 3; }
+  .result-basis { margin-top: 22px; }
+  .secondary-button { width: auto; min-width: 210px; }
+  .source-note { max-width: 48ch; margin-right: auto; margin-left: auto; }
 }
 
 @media (max-height: 690px) {

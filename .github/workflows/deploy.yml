@@ -6,15 +6,20 @@ on:
     paths:
       - "apps/web/**"
       - ".github/workflows/deploy.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 concurrency:
-  group: validate-web
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/web
@@ -30,4 +35,5 @@ jobs:
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm test
       - run: pnpm build

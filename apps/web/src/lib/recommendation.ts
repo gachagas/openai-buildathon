@@ -4,6 +4,15 @@ export const SWIPE_COUNT = 10;
 export const MIN_LIKES_FOR_RECOMMENDATION = 3;
 export const RESULTS_PER_GROUP = 3;
 
+export const BUDGETS = {
+  "Under ₱1,000": [0, 1000],
+  "₱1,000–₱2,500": [1000, 2500],
+  "₱2,500–₱5,000": [2500, 5000],
+  "₱5,000+": [5000, Infinity],
+} as const satisfies Record<string, readonly [number, number]>;
+
+export type Budget = keyof typeof BUDGETS;
+
 export interface SwipeDecision {
   productId: string;
   direction: "like" | "pass";
@@ -37,12 +46,17 @@ function stableNumber(value: string) {
   return hash >>> 0;
 }
 
-function eligibleProducts(allProducts: Product[], occasion: Occasion) {
-  return allProducts.filter((product) =>
+function eligibleProducts(allProducts: Product[], occasion: Occasion, budget?: Budget | null) {
+  const byOccasion = allProducts.filter((product) =>
     occasion === "sympathy"
       ? product.categories.includes("sympathy")
       : !product.categories.includes("sympathy"),
   );
+  const band = budget ? BUDGETS[budget] : undefined;
+  if (!band) return byOccasion;
+  const inBudget = byOccasion.filter((product) => product.price >= band[0] && product.price < band[1]);
+  // Fall back to the full occasion pool if the budget is too narrow to fill a deck.
+  return inBudget.length >= SWIPE_COUNT ? inBudget : byOccasion;
 }
 
 function contextScore(product: Product, recipient: Recipient, occasion: Occasion) {
@@ -64,9 +78,10 @@ export function createSwipeDeck(
   allProducts: Product[],
   recipient: Recipient,
   occasion: Occasion,
+  budget?: Budget | null,
 ): Product[] {
-  const seed = `${recipient}:${occasion}`;
-  const ranked = eligibleProducts(allProducts, occasion)
+  const seed = `${recipient}:${occasion}:${budget ?? "any"}`;
+  const ranked = eligibleProducts(allProducts, occasion, budget)
     .map((product) => ({
       product,
       score: contextScore(product, recipient, occasion),
@@ -110,7 +125,7 @@ export function likedProductsForResults(
     return product ? [product] : [];
   });
 
-  return likedProducts.slice(-RESULTS_PER_GROUP).reverse();
+  return [...likedProducts].reverse();
 }
 
 export function hasEnoughSignals(swipes: SwipeDecision[]) {
@@ -161,6 +176,7 @@ export function rankRecommendations(
   swipes: SwipeDecision[],
   recipient: Recipient,
   occasion: Occasion,
+  budget?: Budget | null,
 ): Recommendation[] {
   const byId = new Map(allProducts.map((product) => [product.id, product]));
   const seenIds = new Set(swipes.map((swipe) => swipe.productId));
@@ -179,7 +195,7 @@ export function rankRecommendations(
 
   const preferredPrice = median(likedProducts.map((product) => product.price));
 
-  return eligibleProducts(allProducts, occasion)
+  return eligibleProducts(allProducts, occasion, budget)
     .filter((product) => !seenIds.has(product.id))
     .map((product) => {
       let score = contextScore(product, recipient, occasion);

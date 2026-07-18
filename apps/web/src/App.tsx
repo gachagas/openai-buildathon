@@ -12,14 +12,18 @@ import {
   MapPin,
   Menu,
   Package,
+  Plus,
   RefreshCcw,
+  RotateCcw,
   Search,
   ShoppingBag,
   Sparkles,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { products, type Occasion, type Product, type Recipient } from "./lib/catalog";
 import {
+  BUDGETS,
   MIN_LIKES_FOR_RECOMMENDATION,
   RESULTS_PER_GROUP,
   SWIPE_COUNT,
@@ -27,14 +31,18 @@ import {
   hasEnoughSignals,
   likedProductsForResults,
   rankRecommendations,
+  type Budget,
   type Recommendation,
   type SwipeDecision,
 } from "./lib/recommendation";
 import { SwipeCard } from "./components/SwipeCard";
 
-type Stage = "setup" | "swiping" | "result";
+type Stage = "setup" | "swiping" | "result" | "bag";
 
 const FLOWERSTORE_LOGO = "https://assets.flowerstore.ph/public/tenantPH/app/assets/images/hub/350_nimRHwJxyyUwOICIxi7rikysv.webp";
+
+const productById = new Map<string, Product>(products.map((product) => [product.id, product]));
+const peso = (amount: number) => `₱${amount.toLocaleString("en-PH")}`;
 
 const recipients: Array<{ value: Recipient; label: string; detail: string }> = [
   { value: "partner", label: "Partner", detail: "Romantic or personal" },
@@ -52,6 +60,8 @@ const occasions: Array<{ value: Occasion; label: string }> = [
   { value: "sympathy", label: "Sympathy" },
 ];
 
+const budgets = Object.keys(BUDGETS) as Budget[];
+
 function formatChoice(value: string) {
   return value.replaceAll("-", " ");
 }
@@ -60,11 +70,15 @@ function MobileHeader({
   stage,
   completedSwipes,
   likedCount,
+  bagCount,
+  onBag,
   onRestart,
 }: {
   stage: Stage;
   completedSwipes: number;
   likedCount: number;
+  bagCount: number;
+  onBag: () => void;
   onRestart: () => void;
 }) {
   const isCalibrating = completedSwipes >= SWIPE_COUNT && likedCount < MIN_LIKES_FOR_RECOMMENDATION;
@@ -83,9 +97,9 @@ function MobileHeader({
           <button className="header-icon-button" type="button" aria-label="Search FlowerStore">
             <Search aria-hidden="true" />
           </button>
-          <button className="header-icon-button bag-button" type="button" aria-label="Shopping bag">
+          <button className="header-icon-button bag-button" type="button" aria-label={`Shopping bag, ${bagCount} item${bagCount === 1 ? "" : "s"}`} onClick={onBag}>
             <ShoppingBag aria-hidden="true" />
-            <span aria-hidden="true">0</span>
+            <span aria-hidden="true">{bagCount}</span>
           </button>
         </div>
       </div>
@@ -125,16 +139,17 @@ function MobileNav() {
   );
 }
 
-function Setup({ onStart }: { onStart: (recipient: Recipient, occasion: Occasion) => void }) {
+function Setup({ onStart }: { onStart: (recipient: Recipient, occasion: Occasion, budget: Budget | null) => void }) {
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [occasion, setOccasion] = useState<Occasion | null>(null);
+  const [budget, setBudget] = useState<Budget | null>(null);
 
   return (
     <main className="mobile-main setup-screen" id="main-content">
       <section className="finder-intro" aria-labelledby="setup-title">
         <p className="finder-kicker"><Sparkles aria-hidden="true" /> Gift Finder</p>
         <h1 id="setup-title">Find a gift<br />they will love.</h1>
-        <p>Choose the moment, swipe through ten curated gifts, and get a match from FlowerStore.</p>
+        <p>Tell us who it is for and the moment, swipe through ten gifts, and get a match from FlowerStore.</p>
       </section>
 
       <section className="picker-section" aria-label="Gift details">
@@ -173,6 +188,23 @@ function Setup({ onStart }: { onStart: (recipient: Recipient, occasion: Occasion
             ))}
           </div>
         </fieldset>
+
+        <fieldset>
+          <legend>What is your budget? <span className="legend-optional">Optional</span></legend>
+          <div className="occasion-options">
+            {budgets.map((option) => (
+              <button
+                key={option}
+                className={`occasion-option${budget === option ? " is-selected" : ""}`}
+                type="button"
+                aria-pressed={budget === option}
+                onClick={() => setBudget(budget === option ? null : option)}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       </section>
 
       <div className="setup-cta">
@@ -180,7 +212,7 @@ function Setup({ onStart }: { onStart: (recipient: Recipient, occasion: Occasion
           className="primary-button start-button"
           type="button"
           disabled={!recipient || !occasion}
-          onClick={() => recipient && occasion && onStart(recipient, occasion)}
+          onClick={() => recipient && occasion && onStart(recipient, occasion, budget)}
         >
           Start gift finder <ArrowRight aria-hidden="true" />
         </button>
@@ -194,10 +226,12 @@ function ResultProductCard({
   product,
   label,
   reason,
+  onAddToBag,
 }: {
   product: Product;
   label: string;
   reason: string;
+  onAddToBag: () => void;
 }) {
   return (
     <article className="result-product-card">
@@ -205,11 +239,16 @@ function ResultProductCard({
       <div className="result-card-copy">
         <p className="result-card-label">{label}</p>
         <h3>{product.title}</h3>
-        <p className="result-card-price">From ₱{product.price.toLocaleString("en-PH")}</p>
+        <p className="result-card-price">From {peso(product.price)}</p>
         <p className="result-card-reason">{reason}</p>
-        <a className="result-card-link" href={product.link} target="_blank" rel="noreferrer">
-          View product <ExternalLink aria-hidden="true" />
-        </a>
+        <div className="result-card-actions">
+          <a className="result-card-link" href={product.link} target="_blank" rel="noreferrer">
+            View product <ExternalLink aria-hidden="true" />
+          </a>
+          <button className="bag-add-button" type="button" onClick={onAddToBag}>
+            <Plus aria-hidden="true" /> Add to bag
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -221,6 +260,7 @@ function Result({
   likedCount,
   recipient,
   occasion,
+  onAddToBag,
   onRestart,
 }: {
   likedProducts: Product[];
@@ -228,6 +268,7 @@ function Result({
   likedCount: number;
   recipient: Recipient;
   occasion: Occasion;
+  onAddToBag: (id: string) => void;
   onRestart: () => void;
 }) {
   return (
@@ -238,13 +279,13 @@ function Result({
 
       <section className="result-copy" aria-labelledby="result-title">
         <p className="result-category">FlowerStore Gift Finder</p>
-        <h1 id="result-title">Six gifts worth a closer look.</h1>
-        <p className="result-description">We kept your three strongest signals and found three new FlowerStore gifts with the same feel.</p>
+        <h1 id="result-title">Your picks and {recommendations.length} new matches.</h1>
+        <p className="result-description">We kept the gifts you saved and found {recommendations.length} new FlowerStore gifts with the same feel.</p>
 
         <section className="results-group" aria-labelledby="saved-title">
           <div className="results-group-heading">
             <Heart aria-hidden="true" />
-            <div><h2 id="saved-title">Your saved picks</h2><p>Three gifts you said you like</p></div>
+            <div><h2 id="saved-title">Your saved picks</h2><p>{likedProducts.length} gift{likedProducts.length === 1 ? "" : "s"} you said you like</p></div>
           </div>
           <div className="results-grid">
             {likedProducts.map((product) => (
@@ -253,6 +294,7 @@ function Result({
                 product={product}
                 label="You saved this"
                 reason="A signal we used to shape your new matches."
+                onAddToBag={() => onAddToBag(product.id)}
               />
             ))}
           </div>
@@ -261,7 +303,7 @@ function Result({
         <section className="results-group" aria-labelledby="new-title">
           <div className="results-group-heading">
             <Sparkles aria-hidden="true" />
-            <div><h2 id="new-title">Three brand-new matches</h2><p>Unseen gifts chosen from your saved signals</p></div>
+            <div><h2 id="new-title">New matches for you</h2><p>Unseen gifts chosen from your saved signals</p></div>
           </div>
           <div className="results-grid">
             {recommendations.map(({ product, reasons }) => (
@@ -270,6 +312,7 @@ function Result({
                 product={product}
                 label="New for you"
                 reason={reasons[0] ?? "A strong fit based on your saved gifts."}
+                onAddToBag={() => onAddToBag(product.id)}
               />
             ))}
           </div>
@@ -288,25 +331,119 @@ function Result({
   );
 }
 
+function Bag({
+  items,
+  total,
+  onRemove,
+  onCheckout,
+  onClose,
+}: {
+  items: Array<{ product: Product; qty: number }>;
+  total: number;
+  onRemove: (id: string) => void;
+  onCheckout: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <main className="mobile-main bag-screen" id="main-content">
+      <button className="back-link" type="button" onClick={onClose}>
+        <ArrowLeft aria-hidden="true" /> Keep browsing
+      </button>
+      <h1 className="bag-title">Your bag</h1>
+
+      {items.length ? (
+        <>
+          <div className="bag-list">
+            {items.map(({ product, qty }) => (
+              <article className="bag-row" key={product.id}>
+                <div className="bag-row-image"><img src={product.image} alt={product.title} /></div>
+                <div className="bag-row-copy">
+                  <a href={product.link} target="_blank" rel="noreferrer">{product.title}</a>
+                  <p>From {peso(product.price)}{qty > 1 ? ` · ×${qty}` : ""}</p>
+                </div>
+                <button className="bag-remove" type="button" aria-label={`Remove ${product.title}`} onClick={() => onRemove(product.id)}>
+                  <Trash2 aria-hidden="true" />
+                </button>
+              </article>
+            ))}
+          </div>
+          <div className="bag-summary">
+            <div className="bag-total"><span>Total</span><strong>{peso(total)}</strong></div>
+            <button className="primary-button start-button" type="button" onClick={onCheckout}>
+              Go to checkout <ArrowRight aria-hidden="true" />
+            </button>
+            <p className="source-note">Checkout opens on FlowerStore.ph. Prices confirmed there.</p>
+          </div>
+        </>
+      ) : (
+        <div className="bag-empty">
+          <ShoppingBag aria-hidden="true" />
+          <h2>Your bag is empty</h2>
+          <p>Add gifts as you swipe or from your matches.</p>
+        </div>
+      )}
+    </main>
+  );
+}
+
 export default function App() {
   const [stage, setStage] = useState<Stage>("setup");
+  const [returnStage, setReturnStage] = useState<Stage>("setup");
   const [recipient, setRecipient] = useState<Recipient>("partner");
   const [occasion, setOccasion] = useState<Occasion>("birthday");
+  const [budget, setBudget] = useState<Budget | null>(null);
   const [deck, setDeck] = useState(() => createSwipeDeck(products, "partner", "birthday"));
   const [swipes, setSwipes] = useState<SwipeDecision[]>([]);
+  const [bag, setBag] = useState<string[]>([]);
+  const [toast, setToast] = useState("");
   const decisionLock = useRef(false);
 
   const recommendations = useMemo(
-    () => rankRecommendations(products, swipes, recipient, occasion).slice(0, RESULTS_PER_GROUP),
-    [swipes, recipient, occasion],
+    () => rankRecommendations(products, swipes, recipient, occasion, budget).slice(0, RESULTS_PER_GROUP),
+    [swipes, recipient, occasion, budget],
   );
   const likedProducts = useMemo(() => likedProductsForResults(products, swipes), [swipes]);
 
-  const start = (nextRecipient: Recipient, nextOccasion: Occasion) => {
+  const bagItems = useMemo(() => {
+    const order: string[] = [];
+    const counts = new Map<string, number>();
+    for (const id of bag) {
+      if (!counts.has(id)) order.push(id);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return order.flatMap((id) => {
+      const product = productById.get(id);
+      return product ? [{ product, qty: counts.get(id) ?? 1 }] : [];
+    });
+  }, [bag]);
+  const bagTotal = bagItems.reduce((sum, { product, qty }) => sum + product.price * qty, 0);
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 1700);
+  }, []);
+
+  const addToBag = useCallback((id: string) => {
+    setBag((current) => [...current, id]);
+    showToast("Added to bag");
+  }, [showToast]);
+
+  const removeFromBag = (id: string) => {
+    setBag((current) => {
+      const index = current.indexOf(id);
+      if (index === -1) return current;
+      const next = [...current];
+      next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const start = (nextRecipient: Recipient, nextOccasion: Occasion, nextBudget: Budget | null) => {
     decisionLock.current = false;
     setRecipient(nextRecipient);
     setOccasion(nextOccasion);
-    setDeck(createSwipeDeck(products, nextRecipient, nextOccasion));
+    setBudget(nextBudget);
+    setDeck(createSwipeDeck(products, nextRecipient, nextOccasion, nextBudget));
     setSwipes([]);
     setStage("swiping");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -332,6 +469,18 @@ export default function App() {
     }, 230);
   }, [deck]);
 
+  const undo = useCallback(() => {
+    decisionLock.current = false;
+    setSwipes((currentSwipes) => currentSwipes.slice(0, -1));
+  }, []);
+
+  const bagCurrent = useCallback(() => {
+    const product = deck[swipes.length];
+    if (!product) return;
+    addToBag(product.id);
+    decide("like");
+  }, [deck, swipes.length, addToBag, decide]);
+
   const restart = () => {
     decisionLock.current = false;
     setSwipes([]);
@@ -339,15 +488,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const openBag = () => {
+    setReturnStage(stage === "bag" ? returnStage : stage);
+    setStage("bag");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
   useEffect(() => {
     if (stage !== "swiping") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowLeft") decide("pass");
       if (event.key === "ArrowRight") decide("like");
+      if (event.key.toLowerCase() === "u" || event.key === "Backspace") undo();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [decide, stage]);
+  }, [decide, undo, stage]);
 
   const currentProduct = deck[swipes.length];
   const likedCount = swipes.filter((swipe) => swipe.direction === "like").length;
@@ -356,7 +512,7 @@ export default function App() {
   return (
     <div className={`app-shell stage-${stage}`} id="top">
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <MobileHeader stage={stage} completedSwipes={swipes.length} likedCount={likedCount} onRestart={restart} />
+      <MobileHeader stage={stage} completedSwipes={swipes.length} likedCount={likedCount} bagCount={bag.length} onBag={openBag} onRestart={restart} />
 
       {stage === "setup" && <Setup onStart={start} />}
 
@@ -368,6 +524,7 @@ export default function App() {
             <div className="context-pills" aria-label="Gift context">
               <span>{formatChoice(recipient)}</span>
               <span>{formatChoice(occasion)}</span>
+              {budget && <span>{budget}</span>}
             </div>
           </section>
           <SwipeCard
@@ -376,25 +533,45 @@ export default function App() {
             nextProduct={deck[swipes.length + 1]}
             onDecision={decide}
           />
+          <div className="swipe-extra">
+            <button className="ghost-button" type="button" onClick={bagCurrent}>
+              <Plus aria-hidden="true" /> Add to bag
+            </button>
+            <button className="ghost-button" type="button" onClick={undo} disabled={swipes.length === 0}>
+              <RotateCcw aria-hidden="true" /> Undo
+            </button>
+          </div>
           <p className="swipe-helper">Swipe left to skip, right to save</p>
           {needsMoreSignals && (
-            <p className="calibration-note">Keep saving gifts you like — we need {MIN_LIKES_FOR_RECOMMENDATION} saved picks before we reveal all six recommendations.</p>
+            <p className="calibration-note">Keep saving gifts you like — we need {MIN_LIKES_FOR_RECOMMENDATION} saved picks before we reveal all your matches.</p>
           )}
         </main>
       )}
 
-      {stage === "result" && likedProducts.length === RESULTS_PER_GROUP && recommendations.length === RESULTS_PER_GROUP && (
+      {stage === "result" && likedProducts.length >= MIN_LIKES_FOR_RECOMMENDATION && recommendations.length > 0 && (
         <Result
           likedProducts={likedProducts}
           recommendations={recommendations}
           likedCount={likedCount}
           recipient={recipient}
           occasion={occasion}
+          onAddToBag={addToBag}
           onRestart={restart}
         />
       )}
 
+      {stage === "bag" && (
+        <Bag
+          items={bagItems}
+          total={bagTotal}
+          onRemove={removeFromBag}
+          onCheckout={() => showToast("Checkout — coming soon")}
+          onClose={() => setStage(returnStage)}
+        />
+      )}
+
       <MobileNav />
+      {toast && <div className="app-toast" role="status">{toast}</div>}
     </div>
   );
 }

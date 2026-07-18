@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { products } from "./catalog";
 import {
+  BUDGETS,
   MIN_LIKES_FOR_RECOMMENDATION,
   RESULTS_PER_GROUP,
   SWIPE_COUNT,
@@ -79,17 +80,33 @@ describe("recommendation ranking", () => {
     expect(hasEnoughSignals(threeSavedAfterCalibration)).toBe(true);
   });
 
-  it("returns three saved picks and three unseen matches", () => {
+  it("returns every saved pick and three unseen matches", () => {
     const deck = createSwipeDeck(products, "partner", "anniversary");
     const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
       productId: product.id,
       direction: index % 3 === 0 ? "like" : "pass",
     }));
+    const likeCount = swipes.filter((swipe) => swipe.direction === "like").length;
     const liked = likedProductsForResults(products, swipes);
     const matches = rankRecommendations(products, swipes, "partner", "anniversary").slice(0, RESULTS_PER_GROUP);
 
-    expect(liked).toHaveLength(RESULTS_PER_GROUP);
+    expect(likeCount).toBeGreaterThan(RESULTS_PER_GROUP);
+    expect(liked).toHaveLength(likeCount);
     expect(matches).toHaveLength(RESULTS_PER_GROUP);
     expect(matches.every(({ product }) => !swipes.some((swipe) => swipe.productId === product.id))).toBe(true);
+  });
+
+  it("keeps the deck and recommendations within the chosen budget", () => {
+    const [min, max] = BUDGETS["Under ₱1,000"];
+    const deck = createSwipeDeck(products, "friend", "birthday", "Under ₱1,000");
+    expect(deck.length).toBeGreaterThanOrEqual(SWIPE_COUNT);
+    expect(deck.every((product) => product.price >= min && product.price < max)).toBe(true);
+
+    const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
+      productId: product.id,
+      direction: index % 2 === 0 ? "like" : "pass",
+    }));
+    const matches = rankRecommendations(products, swipes, "friend", "birthday", "Under ₱1,000");
+    expect(matches.every(({ product }) => product.price >= min && product.price < max)).toBe(true);
   });
 });

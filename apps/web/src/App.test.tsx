@@ -1,63 +1,58 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import App from "./App";
-import { flowers } from "./data/products";
+import { topMatches } from "./lib/match";
 import { shouldIgnoreShortcut } from "./lib/keyboard";
 
-// The deck walks the catalogue in order, so expected card names come from the
-// data itself — the tests assert deck behaviour, not a frozen product list.
-const deckName = (index: number) => flowers[index].name;
+// With no filters the deck is deterministic, so expected card names come from
+// the engine itself — the tests assert flow behaviour, not a frozen product list.
+const defaultDeck = topMatches({}, new Set());
 
-function startDiscovery() {
+function startDeck() {
   render(<App />);
-  fireEvent.click(screen.getByRole("button", { name: "Skip setup" }));
+  fireEvent.click(screen.getByRole("button", { name: /Skip, just browse/ }));
 }
 
-describe("discovery flow", () => {
-  it("advances for like, skip, and favorite choices", () => {
-    startDiscovery();
-    expect(screen.getByRole("heading", { name: deckName(0) })).toBeVisible();
+describe("gift finder flow", () => {
+  it("shows the top-10 deck and advances on like and skip", () => {
+    startDeck();
+    expect(screen.getByRole("heading", { name: defaultDeck[0].name })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Like flower" }));
-    expect(screen.getByRole("heading", { name: deckName(1) })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
+    expect(screen.getByRole("heading", { name: defaultDeck[1].name })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Skip flower" }));
-    expect(screen.getByRole("heading", { name: deckName(2) })).toBeVisible();
-
-    fireEvent.click(screen.getByRole("button", { name: "Favorite flower" }));
-    expect(screen.getByRole("heading", { name: deckName(3) })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Saved/ })).toHaveTextContent("1");
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    expect(screen.getByRole("heading", { name: defaultDeck[2].name })).toBeVisible();
   });
 
-  it("undo restores the previous flower and selection count", () => {
-    startDiscovery();
-    fireEvent.click(screen.getByRole("button", { name: "Like flower" }));
+  it("adds to cart from the deck and updates the cart badge", () => {
+    startDeck();
+    fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+    expect(screen.getByRole("button", { name: /Cart/ })).toHaveTextContent("1");
+  });
+
+  it("undo restores the previous card and liked count", () => {
+    startDeck();
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
     expect(screen.getByText("1 liked")).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Undo last choice" }));
-    expect(screen.getByRole("heading", { name: deckName(0) })).toBeVisible();
+    expect(screen.getByRole("heading", { name: defaultDeck[0].name })).toBeVisible();
     expect(screen.getByText("0 liked")).toBeVisible();
   });
 
-  it("unlocks the flower style after four positive choices", () => {
-    startDiscovery();
-    const styleButton = screen.getByRole("button", { name: /Like 4 more to continue/ });
-    expect(styleButton).toBeDisabled();
-
-    for (let index = 0; index < 4; index += 1) {
-      fireEvent.click(screen.getByRole("button", { name: "Like flower" }));
+  it("reaches the results screen after ten decisions", () => {
+    startDeck();
+    for (let index = 0; index < 10; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Like" }));
     }
-
-    const unlocked = screen.getByRole("button", { name: /See my flower style/ });
-    expect(unlocked).toBeEnabled();
-    fireEvent.click(unlocked);
-    expect(screen.getByRole("heading", { name: "Recommended for you" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Your picks" })).toBeVisible();
   });
 
   it("supports the right-arrow keyboard shortcut", () => {
-    startDiscovery();
+    startDeck();
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(screen.getByRole("heading", { name: deckName(1) })).toBeVisible();
+    expect(screen.getByRole("heading", { name: defaultDeck[1].name })).toBeVisible();
   });
 });
 

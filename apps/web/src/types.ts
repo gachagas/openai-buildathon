@@ -1,10 +1,9 @@
 export type AppStep =
   | "welcome"
-  | "context"
+  | "filters"
   | "discover"
   | "results"
-  | "handoff"
-  | "favorites";
+  | "cart";
 
 export type FlowerDecision = "liked" | "skipped" | "favorite";
 
@@ -65,10 +64,9 @@ export type Flower = {
 };
 
 export type CustomerContext = {
-  recipient?: string;
   occasion?: string;
+  giftType?: string;
   budget?: string;
-  purchaseFormat?: string;
 };
 
 export type FlowerSelection = {

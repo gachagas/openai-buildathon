@@ -16,3 +16,6 @@ export const HeartIcon = (props: IconProps) => <Svg {...props}><path fill="curre
 export const CheckIcon = (props: IconProps) => <Svg {...props}><path d="M20 6 9 17l-5-5"/></Svg>;
 export const CopyIcon = (props: IconProps) => <Svg {...props}><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
 export const PrintIcon = (props: IconProps) => <Svg {...props}><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Svg>;
+export const CartIcon = (props: IconProps) => <Svg {...props}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></Svg>;
+export const PlusIcon = (props: IconProps) => <Svg {...props}><path d="M5 12h14M12 5v14"/></Svg>;
+export const TrashIcon = (props: IconProps) => <Svg {...props}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></Svg>;

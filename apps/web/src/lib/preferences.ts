@@ -58,9 +58,12 @@ export function lessPreferredTraits(flowers: Flower[], selections: FlowerSelecti
 }
 
 export function preferenceSentence(profile: PreferenceProfile) {
-  if (!profile.colors.length) return "Your flower style will take shape as you choose blooms.";
+  const tags = profile.tags.map((tag) => tag.toLowerCase());
   const colors = profile.colors.join(", ");
-  const shapes = profile.shapes.map((shape) => shape.toLowerCase()).join(" and ");
   const styles = profile.styles.map((style) => style.toLowerCase()).join(" and ");
-  return `You seem drawn to ${shapes || "expressive forms"} in ${colors}, with a ${styles || "considered"} arrangement style.`;
+  if (!colors && !tags.length) return "Your gift taste will take shape as you pick what you like.";
+  const lead = tags.length ? `${tags.join(", ")} gifts` : "gifts";
+  const colorPart = colors ? ` in ${colors}` : "";
+  const stylePart = styles ? `, with a ${styles} feel` : "";
+  return `You seem drawn to ${lead}${colorPart}${stylePart}.`;
 }

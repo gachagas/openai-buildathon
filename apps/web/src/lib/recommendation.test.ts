@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+import { products } from "./catalog";
+import {
+  MIN_LIKES_FOR_RECOMMENDATION,
+  RESULTS_PER_GROUP,
+  SWIPE_COUNT,
+  createSwipeDeck,
+  hasEnoughSignals,
+  likedProductsForResults,
+  rankRecommendations,
+  type SwipeDecision,
+} from "./recommendation";
+
+describe("FlowerStore catalog snapshot", () => {
+  it("contains a diverse, valid set of real products", () => {
+    expect(products.length).toBeGreaterThanOrEqual(180);
+    expect(new Set(products.map((product) => product.link)).size).toBe(products.length);
+    expect(new Set(products.flatMap((product) => product.categories)).size).toBeGreaterThanOrEqual(8);
+    expect(products.every((product) => product.link.startsWith("https://flowerstore.ph/product/"))).toBe(true);
+    expect(products.every((product) => product.image.startsWith("https://flowerstoreph-assets-prod.s3"))).toBe(true);
+    expect(products.every((product) => product.price >= 399)).toBe(true);
+  });
+});
+
+describe("swipe deck", () => {
+  it("provides a unique deck that can continue after the first ten choices", () => {
+    const deck = createSwipeDeck(products, "friend", "birthday");
+    expect(deck.length).toBeGreaterThan(SWIPE_COUNT);
+    expect(new Set(deck.map((product) => product.id)).size).toBe(deck.length);
+  });
+
+  it("does not mix sympathy products into celebratory decks", () => {
+    const deck = createSwipeDeck(products, "colleague", "congratulations");
+    expect(deck.every((product) => !product.categories.includes("sympathy"))).toBe(true);
+  });
+
+  it("uses only sympathy-sensitive products for a sympathy deck", () => {
+    const deck = createSwipeDeck(products, "family", "sympathy");
+    expect(deck.length).toBeGreaterThanOrEqual(SWIPE_COUNT);
+    expect(deck.every((product) => product.categories.includes("sympathy"))).toBe(true);
+  });
+});
+
+describe("recommendation ranking", () => {
+  it("never repeats a product that was already swiped", () => {
+    const deck = createSwipeDeck(products, "partner", "anniversary");
+    const swipes: SwipeDecision[] = deck.map((product, index) => ({ productId: product.id, direction: index % 2 ? "pass" : "like" }));
+    const recommendation = rankRecommendations(products, swipes, "partner", "anniversary")[0];
+    expect(deck.some((product) => product.id === recommendation.product.id)).toBe(false);
+    expect(recommendation.reasons.length).toBeGreaterThan(0);
+  });
+
+  it("learns a preference for personalized gifts", () => {
+    const personalized = products.filter((product) => product.categories.includes("personalized")).slice(0, 5);
+    const flowers = products.filter((product) => product.categories.includes("flowers") && !product.categories.includes("personalized")).slice(0, 5);
+    const swipes: SwipeDecision[] = [
+      ...personalized.map((product) => ({ productId: product.id, direction: "like" as const })),
+      ...flowers.map((product) => ({ productId: product.id, direction: "pass" as const })),
+    ];
+    const topFive = rankRecommendations(products, swipes, "friend", "just-because").slice(0, 5);
+    expect(topFive.some(({ product }) => product.categories.includes("personalized"))).toBe(true);
+  });
+
+  it("requires three saved gifts after the initial ten choices before showing results", () => {
+    const deck = createSwipeDeck(products, "family", "birthday");
+    const noLikes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product) => ({
+      productId: product.id,
+      direction: "pass",
+    }));
+    const threeSavedAfterCalibration = [
+      ...noLikes,
+      ...deck.slice(SWIPE_COUNT, SWIPE_COUNT + MIN_LIKES_FOR_RECOMMENDATION).map((product) => ({
+        productId: product.id,
+        direction: "like" as const,
+      })),
+    ];
+
+    expect(hasEnoughSignals(noLikes)).toBe(false);
+    expect(hasEnoughSignals(threeSavedAfterCalibration)).toBe(true);
+  });
+
+  it("returns three saved picks and three unseen matches", () => {
+    const deck = createSwipeDeck(products, "partner", "anniversary");
+    const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
+      productId: product.id,
+      direction: index % 3 === 0 ? "like" : "pass",
+    }));
+    const liked = likedProductsForResults(products, swipes);
+    const matches = rankRecommendations(products, swipes, "partner", "anniversary").slice(0, RESULTS_PER_GROUP);
+
+    expect(liked).toHaveLength(RESULTS_PER_GROUP);
+    expect(matches).toHaveLength(RESULTS_PER_GROUP);
+    expect(matches.every(({ product }) => !swipes.some((swipe) => swipe.productId === product.id))).toBe(true);
+  });
+});

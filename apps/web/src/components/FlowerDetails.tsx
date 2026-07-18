@@ -32,20 +32,20 @@ export function FlowerDetails({ flower, onClose, onLike, onSkip, onFavorite }: P
         </div>
         <div className="detail-modal__body">
           <div className="detail-modal__heading">
-            <div><h2 id="detail-title">{flower.name}</h2><p className="jp-name" lang="ja">{flower.japaneseName}</p><p className="scientific-name"><i>{flower.scientificName}</i></p></div>
-            <div className="price"><strong>{formatPrice(flower.pricing.amount)}</strong><span>{flower.pricing.displayLabel}</span></div>
+            <div><h2 id="detail-title">{flower.name}</h2>{flower.japaneseName && <p className="jp-name" lang="ja">{flower.japaneseName}</p>}{flower.scientificName && <p className="scientific-name"><i>{flower.scientificName}</i></p>}</div>
+            <div className="price"><strong>{formatPrice(flower.pricing.amount)}</strong>{flower.pricing.displayLabel && <span>{flower.pricing.displayLabel}</span>}</div>
           </div>
           <div className="tag-list">{flower.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div>
           <p className="detail-modal__description">{flower.description}</p>
           <dl className="spec-grid">
-            <div><dt>Available colors</dt><dd>{listPhrase(flower.colors)}</dd></div>
-            <div><dt>Fragrance</dt><dd>{flower.fragrance}</dd></div>
-            <div><dt>Typical vase life</dt><dd>{flower.vaseLifeDays.min}–{flower.vaseLifeDays.max} days</dd></div>
-            <div><dt>Best for</dt><dd>{listPhrase(flower.occasions)}</dd></div>
-            <div><dt>Season</dt><dd>{listPhrase(flower.season)}</dd></div>
-            <div><dt>Care</dt><dd>{flower.careNotes[0]}</dd></div>
+            {flower.colors.length > 0 && <div><dt>Colors</dt><dd>{listPhrase(flower.colors)}</dd></div>}
+            {flower.fragrance && <div><dt>Fragrance</dt><dd>{flower.fragrance}</dd></div>}
+            {flower.vaseLifeDays && <div><dt>Typical vase life</dt><dd>{flower.vaseLifeDays.min}–{flower.vaseLifeDays.max} days</dd></div>}
+            {flower.occasions.length > 0 && <div><dt>Best for</dt><dd>{listPhrase(flower.occasions)}</dd></div>}
+            {flower.season && <div><dt>Season</dt><dd>{listPhrase(flower.season)}</dd></div>}
+            {flower.careNotes?.[0] && <div><dt>Care</dt><dd>{flower.careNotes[0]}</dd></div>}
           </dl>
-          <aside className="meaning-box"><span>花言葉 · Traditional association</span><strong>{flower.meaning.message}</strong><small>Meanings can vary by flower color, culture, source, and period.</small></aside>
+          {flower.meaning && <aside className="meaning-box"><span>花言葉 · Traditional association</span><strong>{flower.meaning.message}</strong><small>Meanings can vary by flower color, culture, source, and period.</small></aside>}
           <div className="detail-modal__actions">
             {onSkip && <button className="secondary-button" type="button" onClick={onSkip}><CloseIcon size={17}/> Skip</button>}
             <button className="primary-button" type="button" onClick={onLike}><HeartIcon size={17}/> Add to likes</button>

@@ -22,7 +22,8 @@ export type AtlasPosition =
   | "top-left"
   | "top-right"
   | "bottom-left"
-  | "bottom-right";
+  | "bottom-right"
+  | "full";
 
 export type Flower = {
   id: string;
@@ -34,30 +35,33 @@ export type Flower = {
     position: AtlasPosition;
     alt: string;
   };
+  images?: string[];
+  link?: string;
   pricing: {
     amount: number;
     currency: "PHP";
-    unit: "per_stem" | "per_bunch";
+    unit: "per_stem" | "per_bunch" | "per_item";
     displayLabel: string;
   };
+  originalPrice?: number;
   colors: string[];
   tags: string[];
   shapes: string[];
   styles: string[];
   summary: string;
   description: string;
-  fragrance: "none" | "light" | "medium" | "strong";
-  vaseLifeDays: { min: number; max: number };
+  fragrance?: "none" | "light" | "medium" | "strong";
+  vaseLifeDays?: { min: number; max: number };
   occasions: string[];
-  meaning: {
+  meaning?: {
     label: string;
     category: MeaningCategory;
     message: string;
   };
   availability: "available_today" | "limited" | "seasonal" | "preorder";
-  season: string[];
-  careNotes: string[];
-  isMockData: true;
+  season?: string[];
+  careNotes?: string[];
+  isMockData: boolean;
 };
 
 export type CustomerContext = {

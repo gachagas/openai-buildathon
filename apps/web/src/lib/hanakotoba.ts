@@ -19,7 +19,7 @@ export function hanakotobaMessage(flowers: Flower[], selections: FlowerSelection
   selections.forEach((selection) => {
     if (selection.decision === "skipped") return;
     const flower = byId.get(selection.flowerId);
-    if (!flower) return;
+    if (!flower?.meaning) return;
     const category = flower.meaning.category;
     scores.set(category, (scores.get(category) ?? 0) + (selection.decision === "favorite" ? 3 : 1));
     contributors.set(category, [...(contributors.get(category) ?? []), flower.name]);

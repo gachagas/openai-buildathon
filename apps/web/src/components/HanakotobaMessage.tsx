@@ -5,6 +5,7 @@ import { listPhrase } from "../lib/formatting";
 
 export function HanakotobaMessage({ selections }: { selections: FlowerSelection[] }) {
   const result = hanakotobaMessage(flowers, selections);
+  if (!result.flowerNames.length) return null;
   return (
     <aside className="hanakotoba-card" aria-labelledby="hanakotoba-title">
       <span className="card-label">花言葉 · Hanakotoba</span>

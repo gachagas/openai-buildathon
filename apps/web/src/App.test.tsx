@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import App from "./App";
+import { flowers } from "./data/products";
 import { shouldIgnoreShortcut } from "./lib/keyboard";
+
+// The deck walks the catalogue in order, so expected card names come from the
+// data itself — the tests assert deck behaviour, not a frozen product list.
+const deckName = (index: number) => flowers[index].name;
 
 function startDiscovery() {
   render(<App />);
@@ -11,16 +16,16 @@ function startDiscovery() {
 describe("discovery flow", () => {
   it("advances for like, skip, and favorite choices", () => {
     startDiscovery();
-    expect(screen.getByRole("heading", { name: "Pink Ranunculus" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(0) })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Like flower" }));
-    expect(screen.getByRole("heading", { name: "Sunflower" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(1) })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Skip flower" }));
-    expect(screen.getByRole("heading", { name: "White Orchid" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(2) })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Favorite flower" }));
-    expect(screen.getByRole("heading", { name: "Blush Peony" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(3) })).toBeVisible();
     expect(screen.getByRole("button", { name: /Saved/ })).toHaveTextContent("1");
   });
 
@@ -30,7 +35,7 @@ describe("discovery flow", () => {
     expect(screen.getByText("1 liked")).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Undo last choice" }));
-    expect(screen.getByRole("heading", { name: "Pink Ranunculus" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(0) })).toBeVisible();
     expect(screen.getByText("0 liked")).toBeVisible();
   });
 
@@ -52,7 +57,7 @@ describe("discovery flow", () => {
   it("supports the right-arrow keyboard shortcut", () => {
     startDiscovery();
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(screen.getByRole("heading", { name: "Sunflower" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: deckName(1) })).toBeVisible();
   });
 });
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import "./App.css";
-import { flowers, flowerById } from "./data/flowers";
+import { flowers, flowerById } from "./data/products";
 import type { AppStep, CustomerContext, Flower, FlowerDecision, FlowerSelection, Recommendation } from "./types";
 import { aggregatePreferences, lessPreferredTraits } from "./lib/preferences";
 import { matchingArrangement, recommendFlowers } from "./lib/recommendations";
@@ -15,12 +15,7 @@ import { RecommendationCard } from "./components/RecommendationCard";
 import { FloristHandoff } from "./components/FloristHandoff";
 import { shouldIgnoreShortcut } from "./lib/keyboard";
 
-const discoveryOrder = [
-  "pink-ranunculus", "sunflower", "white-orchid", "blush-peony", "lavender", "coral-gerbera",
-  "blue-hydrangea", "white-lisianthus", "pink-sweet-pea", "coral-carnation", "garden-rose",
-  "burgundy-anemone", "green-chrysanthemum", "pink-camellia", "white-lily", "cream-tulip",
-  "peach-dahlia", "babys-breath",
-];
+const discoveryOrder = flowers.map((flower) => flower.id);
 
 const contextOptions = {
   recipient: ["For myself", "Partner", "Friend", "Family", "Colleague", "Someone else", "Not sure yet"],
@@ -210,7 +205,7 @@ function App() {
       </aside>
     </main>}
 
-    {step === "favorites" && <main className="favorites-page"><button className="text-button" type="button" onClick={() => setStep(previousStep)}>← Back</button><h1>Saved flowers</h1><p className="section-lede">Favorites carry extra weight in your flower style.</p>{favoriteFlowers.length ? <div className="favorites-grid">{favoriteFlowers.map((flower) => <button type="button" key={flower.id} onClick={() => setDetailFlower(flower)}><FlowerImage flower={flower}/><span><strong>{flower.name}</strong><small>{flower.meaning.label}</small></span></button>)}</div> : <div className="empty-state"><BookmarkIcon size={28}/><h2>No saved flowers yet</h2><p>Choose Favorite on any discovery card to keep it here.</p></div>}</main>}
+    {step === "favorites" && <main className="favorites-page"><button className="text-button" type="button" onClick={() => setStep(previousStep)}>← Back</button><h1>Saved flowers</h1><p className="section-lede">Favorites carry extra weight in your flower style.</p>{favoriteFlowers.length ? <div className="favorites-grid">{favoriteFlowers.map((flower) => <button type="button" key={flower.id} onClick={() => setDetailFlower(flower)}><FlowerImage flower={flower}/><span><strong>{flower.name}</strong><small>{flower.meaning?.label ?? flower.tags[0]}</small></span></button>)}</div> : <div className="empty-state"><BookmarkIcon size={28}/><h2>No saved flowers yet</h2><p>Choose Favorite on any discovery card to keep it here.</p></div>}</main>}
 
     {step === "results" && <main className="results-page">
       <PreferenceSummary profile={profile} selectedFlowers={likedFlowers} selections={selections} lessPreferred={lessPreferred}/>

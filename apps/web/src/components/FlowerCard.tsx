@@ -70,9 +70,9 @@ export function FlowerCard({ flower, isActive, layer, onDecision, onDetails }: P
         <div className="flower-card__title-row">
           <div>
             <h2>{flower.name}</h2>
-            <p className="jp-name" lang="ja">{flower.japaneseName}</p>
+            {flower.japaneseName && <p className="jp-name" lang="ja">{flower.japaneseName}</p>}
           </div>
-          <div className="price"><strong>{formatPrice(flower.pricing.amount)}</strong><span>{flower.pricing.displayLabel}</span></div>
+          <div className="price"><strong>{formatPrice(flower.pricing.amount)}</strong>{flower.pricing.displayLabel && <span>{flower.pricing.displayLabel}</span>}</div>
         </div>
         <p className="flower-card__summary">{flower.summary}</p>
         {isActive && <button className="text-button" type="button" onClick={onDetails}>More about this flower →</button>}

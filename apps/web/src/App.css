@@ -125,6 +125,7 @@ h2 { font-size: clamp(1.35rem, 2.5vw, 2rem); line-height: 1.15; font-weight: 900
 .flower-image--top-right img { left: -100%; top: 0; }
 .flower-image--bottom-left img { left: 0; top: -100%; }
 .flower-image--bottom-right img { left: -100%; top: -100%; }
+.flower-image--full img { inset: 0; left: 0; top: 0; width: 100%; height: 100%; }
 
 .results-page { width: min(1120px, 100%); margin: 0 auto; padding: clamp(28px, 5vw, 54px) 20px 70px; }
 .results-section > h1 { margin-top: 10px; font-size: clamp(2rem, 4.2vw, 2.8rem); }

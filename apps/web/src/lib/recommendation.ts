@@ -1,6 +1,8 @@
 import type { GiftCategory, Occasion, Product, Recipient } from "./catalog";
 
 export const SWIPE_COUNT = 10;
+export const MIN_LIKES_FOR_RECOMMENDATION = 3;
+export const RESULTS_PER_GROUP = 3;
 
 export interface SwipeDecision {
   productId: string;
@@ -92,10 +94,30 @@ export function createSwipeDeck(
     if (usedTitles.has(normalizedTitle)) continue;
     deck.push(item.product);
     usedTitles.add(normalizedTitle);
-    if (deck.length === SWIPE_COUNT) break;
   }
 
   return deck;
+}
+
+export function likedProductsForResults(
+  allProducts: Product[],
+  swipes: SwipeDecision[],
+): Product[] {
+  const byId = new Map(allProducts.map((product) => [product.id, product]));
+  const likedProducts = swipes.flatMap((swipe) => {
+    if (swipe.direction !== "like") return [];
+    const product = byId.get(swipe.productId);
+    return product ? [product] : [];
+  });
+
+  return likedProducts.slice(-RESULTS_PER_GROUP).reverse();
+}
+
+export function hasEnoughSignals(swipes: SwipeDecision[]) {
+  return (
+    swipes.length >= SWIPE_COUNT
+    && swipes.filter((swipe) => swipe.direction === "like").length >= MIN_LIKES_FOR_RECOMMENDATION
+  );
 }
 
 function addWeight(weights: Map<string, number>, key: string, amount: number) {

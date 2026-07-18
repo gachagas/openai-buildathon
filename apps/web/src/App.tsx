@@ -18,10 +18,14 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { products, type Occasion, type Recipient } from "./lib/catalog";
+import { products, type Occasion, type Product, type Recipient } from "./lib/catalog";
 import {
+  MIN_LIKES_FOR_RECOMMENDATION,
+  RESULTS_PER_GROUP,
   SWIPE_COUNT,
   createSwipeDeck,
+  hasEnoughSignals,
+  likedProductsForResults,
   rankRecommendations,
   type Recommendation,
   type SwipeDecision,
@@ -55,12 +59,17 @@ function formatChoice(value: string) {
 function MobileHeader({
   stage,
   completedSwipes,
+  likedCount,
   onRestart,
 }: {
   stage: Stage;
   completedSwipes: number;
+  likedCount: number;
   onRestart: () => void;
 }) {
+  const isCalibrating = completedSwipes >= SWIPE_COUNT && likedCount < MIN_LIKES_FOR_RECOMMENDATION;
+  const remainingLikes = MIN_LIKES_FOR_RECOMMENDATION - likedCount;
+
   return (
     <header className="mobile-header">
       <div className="top-bar">
@@ -88,9 +97,11 @@ function MobileHeader({
       </button>
 
       {stage === "swiping" && (
-        <div className="finder-progress" aria-label={`${completedSwipes} of ${SWIPE_COUNT} choices complete`}>
+        <div className="finder-progress" aria-label={isCalibrating
+          ? `${completedSwipes} choices complete; ${remainingLikes} more saved gift${remainingLikes === 1 ? "" : "s"} needed`
+          : `${completedSwipes} of ${SWIPE_COUNT} choices complete`}>
           <div className="finder-progress-copy">
-            <span>Gift Finder</span>
+            <span>{isCalibrating ? `Save ${remainingLikes} more gift${remainingLikes === 1 ? "" : "s"}` : "Gift Finder"}</span>
             <button type="button" onClick={onRestart}>Restart</button>
           </div>
           <div className="progress-track" aria-hidden="true">
@@ -173,60 +184,101 @@ function Setup({ onStart }: { onStart: (recipient: Recipient, occasion: Occasion
         >
           Start gift finder <ArrowRight aria-hidden="true" />
         </button>
-        <p>10 quick choices, then your best match.</p>
+        <p>Start with 10 choices, then save 3 gifts for a reliable match.</p>
       </div>
     </main>
   );
 }
 
+function ResultProductCard({
+  product,
+  label,
+  reason,
+}: {
+  product: Product;
+  label: string;
+  reason: string;
+}) {
+  return (
+    <article className="result-product-card">
+      <div className="result-card-image"><img src={product.image} alt={product.title} /></div>
+      <div className="result-card-copy">
+        <p className="result-card-label">{label}</p>
+        <h3>{product.title}</h3>
+        <p className="result-card-price">From ₱{product.price.toLocaleString("en-PH")}</p>
+        <p className="result-card-reason">{reason}</p>
+        <a className="result-card-link" href={product.link} target="_blank" rel="noreferrer">
+          View product <ExternalLink aria-hidden="true" />
+        </a>
+      </div>
+    </article>
+  );
+}
+
 function Result({
-  recommendation,
+  likedProducts,
+  recommendations,
   likedCount,
   recipient,
   occasion,
   onRestart,
 }: {
-  recommendation: Recommendation;
+  likedProducts: Product[];
+  recommendations: Recommendation[];
   likedCount: number;
   recipient: Recipient;
   occasion: Occasion;
   onRestart: () => void;
 }) {
-  const { product, reasons } = recommendation;
-
   return (
     <main className="mobile-main result-screen" id="main-content">
       <button className="back-link" type="button" onClick={onRestart}>
         <ArrowLeft aria-hidden="true" /> Start over
       </button>
 
-      <div className="result-image">
-        <img src={product.image} alt={product.title} />
-        <span className="match-seal"><Heart aria-hidden="true" /> Your gift match</span>
-      </div>
-
       <section className="result-copy" aria-labelledby="result-title">
         <p className="result-category">FlowerStore Gift Finder</p>
-        <h1 id="result-title">{product.title}</h1>
-        <p className="result-price">From ₱{product.price.toLocaleString("en-PH")}</p>
-        <p className="result-description">{product.description}</p>
+        <h1 id="result-title">Six gifts worth a closer look.</h1>
+        <p className="result-description">We kept your three strongest signals and found three new FlowerStore gifts with the same feel.</p>
 
-        <div className="why-match">
-          <h2>Why this is your match</h2>
-          <ul>
-            {reasons.slice(0, 3).map((reason) => (
-              <li key={reason}><Check aria-hidden="true" />{reason}</li>
+        <section className="results-group" aria-labelledby="saved-title">
+          <div className="results-group-heading">
+            <Heart aria-hidden="true" />
+            <div><h2 id="saved-title">Your saved picks</h2><p>Three gifts you said you like</p></div>
+          </div>
+          <div className="results-grid">
+            {likedProducts.map((product) => (
+              <ResultProductCard
+                key={product.id}
+                product={product}
+                label="You saved this"
+                reason="A signal we used to shape your new matches."
+              />
             ))}
-          </ul>
-        </div>
+          </div>
+        </section>
+
+        <section className="results-group" aria-labelledby="new-title">
+          <div className="results-group-heading">
+            <Sparkles aria-hidden="true" />
+            <div><h2 id="new-title">Three brand-new matches</h2><p>Unseen gifts chosen from your saved signals</p></div>
+          </div>
+          <div className="results-grid">
+            {recommendations.map(({ product, reasons }) => (
+              <ResultProductCard
+                key={product.id}
+                product={product}
+                label="New for you"
+                reason={reasons[0] ?? "A strong fit based on your saved gifts."}
+              />
+            ))}
+          </div>
+        </section>
 
         <p className="result-basis">
-          Based on {likedCount} saved gift{likedCount === 1 ? "" : "s"} for your {formatChoice(recipient)} and {formatChoice(occasion)}.
+          Built from {likedCount} saved gift{likedCount === 1 ? "" : "s"} for your {formatChoice(recipient)} and {formatChoice(occasion)}.
         </p>
 
-        <a className="primary-button product-link" href={product.link} target="_blank" rel="noreferrer">
-          View product <ExternalLink aria-hidden="true" />
-        </a>
         <button className="secondary-button" type="button" onClick={onRestart}>
           <RefreshCcw aria-hidden="true" /> Try a new match
         </button>
@@ -244,10 +296,11 @@ export default function App() {
   const [swipes, setSwipes] = useState<SwipeDecision[]>([]);
   const decisionLock = useRef(false);
 
-  const recommendation = useMemo(
-    () => rankRecommendations(products, swipes, recipient, occasion)[0],
+  const recommendations = useMemo(
+    () => rankRecommendations(products, swipes, recipient, occasion).slice(0, RESULTS_PER_GROUP),
     [swipes, recipient, occasion],
   );
+  const likedProducts = useMemo(() => likedProductsForResults(products, swipes), [swipes]);
 
   const start = (nextRecipient: Recipient, nextOccasion: Occasion) => {
     decisionLock.current = false;
@@ -265,10 +318,10 @@ export default function App() {
 
     setSwipes((currentSwipes) => {
       const product = deck[currentSwipes.length];
-      if (!product || currentSwipes.length >= SWIPE_COUNT) return currentSwipes;
+      if (!product) return currentSwipes;
 
       const nextSwipes = [...currentSwipes, { productId: product.id, direction }];
-      if (nextSwipes.length === SWIPE_COUNT) {
+      if (hasEnoughSignals(nextSwipes)) {
         window.setTimeout(() => setStage("result"), 120);
       }
       return nextSwipes;
@@ -298,11 +351,12 @@ export default function App() {
 
   const currentProduct = deck[swipes.length];
   const likedCount = swipes.filter((swipe) => swipe.direction === "like").length;
+  const needsMoreSignals = swipes.length >= SWIPE_COUNT && !hasEnoughSignals(swipes);
 
   return (
     <div className={`app-shell stage-${stage}`} id="top">
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <MobileHeader stage={stage} completedSwipes={swipes.length} onRestart={restart} />
+      <MobileHeader stage={stage} completedSwipes={swipes.length} likedCount={likedCount} onRestart={restart} />
 
       {stage === "setup" && <Setup onStart={start} />}
 
@@ -323,12 +377,16 @@ export default function App() {
             onDecision={decide}
           />
           <p className="swipe-helper">Swipe left to skip, right to save</p>
+          {needsMoreSignals && (
+            <p className="calibration-note">Keep saving gifts you like — we need {MIN_LIKES_FOR_RECOMMENDATION} saved picks before we reveal all six recommendations.</p>
+          )}
         </main>
       )}
 
-      {stage === "result" && recommendation && (
+      {stage === "result" && likedProducts.length === RESULTS_PER_GROUP && recommendations.length === RESULTS_PER_GROUP && (
         <Result
-          recommendation={recommendation}
+          likedProducts={likedProducts}
+          recommendations={recommendations}
           likedCount={likedCount}
           recipient={recipient}
           occasion={occasion}

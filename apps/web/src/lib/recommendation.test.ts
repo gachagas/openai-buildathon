@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { products } from "./catalog";
-import { SWIPE_COUNT, createSwipeDeck, rankRecommendations, type SwipeDecision } from "./recommendation";
+import {
+  MIN_LIKES_FOR_RECOMMENDATION,
+  RESULTS_PER_GROUP,
+  SWIPE_COUNT,
+  createSwipeDeck,
+  hasEnoughSignals,
+  likedProductsForResults,
+  rankRecommendations,
+  type SwipeDecision,
+} from "./recommendation";
 
 describe("FlowerStore catalog snapshot", () => {
   it("contains a diverse, valid set of real products", () => {
@@ -14,10 +23,10 @@ describe("FlowerStore catalog snapshot", () => {
 });
 
 describe("swipe deck", () => {
-  it("creates exactly ten unique choices", () => {
+  it("provides a unique deck that can continue after the first ten choices", () => {
     const deck = createSwipeDeck(products, "friend", "birthday");
-    expect(deck).toHaveLength(SWIPE_COUNT);
-    expect(new Set(deck.map((product) => product.id)).size).toBe(SWIPE_COUNT);
+    expect(deck.length).toBeGreaterThan(SWIPE_COUNT);
+    expect(new Set(deck.map((product) => product.id)).size).toBe(deck.length);
   });
 
   it("does not mix sympathy products into celebratory decks", () => {
@@ -27,7 +36,7 @@ describe("swipe deck", () => {
 
   it("uses only sympathy-sensitive products for a sympathy deck", () => {
     const deck = createSwipeDeck(products, "family", "sympathy");
-    expect(deck).toHaveLength(SWIPE_COUNT);
+    expect(deck.length).toBeGreaterThanOrEqual(SWIPE_COUNT);
     expect(deck.every((product) => product.categories.includes("sympathy"))).toBe(true);
   });
 });
@@ -50,5 +59,37 @@ describe("recommendation ranking", () => {
     ];
     const topFive = rankRecommendations(products, swipes, "friend", "just-because").slice(0, 5);
     expect(topFive.some(({ product }) => product.categories.includes("personalized"))).toBe(true);
+  });
+
+  it("requires three saved gifts after the initial ten choices before showing results", () => {
+    const deck = createSwipeDeck(products, "family", "birthday");
+    const noLikes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product) => ({
+      productId: product.id,
+      direction: "pass",
+    }));
+    const threeSavedAfterCalibration = [
+      ...noLikes,
+      ...deck.slice(SWIPE_COUNT, SWIPE_COUNT + MIN_LIKES_FOR_RECOMMENDATION).map((product) => ({
+        productId: product.id,
+        direction: "like" as const,
+      })),
+    ];
+
+    expect(hasEnoughSignals(noLikes)).toBe(false);
+    expect(hasEnoughSignals(threeSavedAfterCalibration)).toBe(true);
+  });
+
+  it("returns three saved picks and three unseen matches", () => {
+    const deck = createSwipeDeck(products, "partner", "anniversary");
+    const swipes: SwipeDecision[] = deck.slice(0, SWIPE_COUNT).map((product, index) => ({
+      productId: product.id,
+      direction: index % 3 === 0 ? "like" : "pass",
+    }));
+    const liked = likedProductsForResults(products, swipes);
+    const matches = rankRecommendations(products, swipes, "partner", "anniversary").slice(0, RESULTS_PER_GROUP);
+
+    expect(liked).toHaveLength(RESULTS_PER_GROUP);
+    expect(matches).toHaveLength(RESULTS_PER_GROUP);
+    expect(matches.every(({ product }) => !swipes.some((swipe) => swipe.productId === product.id))).toBe(true);
   });
 });

@@ -1,0 +1,11 @@
+.env
+*.env
+.DS_Store
+.vscode
+.idea
+.vite
+.next
+.node_modules
+.node_modules
+
+outputs/

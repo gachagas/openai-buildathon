@@ -24,4 +24,4 @@ validates the app and deploys the image to the Railway `web-playground` service
 in the `playground` environment. Railway is configured in
 `apps/web/railway.json`; the workflow uses the `RAILWAY_TOKEN` repository secret.
 
-Public URL: pending initial Railway provisioning.
+Public URL: https://web-playground-playground.up.railway.app
